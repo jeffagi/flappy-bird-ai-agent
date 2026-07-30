@@ -996,7 +996,7 @@ function setAi(on){
   STATE.overlord = !!on;
   aiBtn.classList.toggle('off', !on);
   aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  aiLabel.textContent = on ? 'AI · ENGAGED' : 'ACTIVATE AI AGENT';
+  aiLabel.textContent = on ? '🤖 A.I. Engaged' : 'ACTIVATE AI AGENT';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   if (on && !STATE.running) startGame();
   aiBtn.classList.remove('firing'); void aiBtn.offsetWidth;
