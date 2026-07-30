@@ -387,8 +387,8 @@ const aiStat   = document.getElementById('aiStat');
 /* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
                 the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
 const COL = {
-  // sky — canonical Flappy Bird light-blue gradient
-  bgSky:'#70C5CE', bgSkyEnd:'#A8DADC',
+  // sky — canonical Flappy Bird light-blue fill
+  bgSky:'#70C5CE',
   // city silhouette  (pale grey-blue, sits low behind bushes)
   city:'rgba(168,196,205,.95)',
   // mid-ground bushes  (pale sage, similar to official mobile clone)
@@ -798,11 +798,6 @@ function safetyFlapIfNeeded(obs){
   // rising before its top edge clips the upper pipe.
   if (STATE.bird.y - birdR < obs.gapTop + upSafe){
     STATE.bird.vy = Math.max(STATE.bird.vy, 0);
-    return;
-  }
-  // Canvas-top guard (only if there's no relevant pipe above us).
-  if (!obs.pipe && STATE.bird.y - birdR < 8){
-    STATE.bird.vy = Math.max(STATE.bird.vy, 0);
   }
 }
 
@@ -995,18 +990,6 @@ function cornerTicks(ctx,x,y,w,h,color,len,th){
   ctx.stroke();
   ctx.restore();
 }
-function labelTag(ctx,x,y,text,color){
-  ctx.save();
-  ctx.font = 'bold 12px ui-monospace, Menlo, monospace';
-  const w = ctx.measureText(text).width + 12;
-  ctx.fillStyle = 'rgba(0,0,0,.6)';
-  ctx.fillRect(x, y-10, w, 16);
-  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
-  ctx.strokeRect(x+.5, y-9.5, w-1, 15);
-  ctx.fillStyle = color;
-  ctx.fillText(text, x+6, y+2);
-  ctx.restore();
-}
 
 /* small two-line label:  KEY on top in dim ink,  VALUE below in bright color.
    Designed to sit unobtrusively next to a detection box.                  */
@@ -1044,7 +1027,6 @@ let pol = { ...NEUTRAL_POL };
 
 // ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
 // lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
-function currentLevel(score){ return Math.floor(score / 25) + 1; }
 function currentLevel(score){ return Math.floor(score / 25) + 1; }
 
 /* ----------  INPUTS + AI BUTTON  ---------- */
@@ -1100,11 +1082,8 @@ document.addEventListener('pointerdown', (e) => {
     if (e.target.id === 'speed-btn')             return;
   }
   if (!STATE.running) startGame();
-  else flopSafeFlap();
+  else flap();    // flap() already guards `STATE.running` internally
 });
-
-// Safe flap that respects the running state \u2014 avoids the startGame-and-flap race.
-function flopSafeFlap(){ if (STATE.running) flap(); }
 
 /* ----------  MAIN LOOP  ---------- */
 /* ============================================================
