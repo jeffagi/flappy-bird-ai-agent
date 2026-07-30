@@ -665,12 +665,14 @@ function setScore(n){
 function detect(){
   let nextPipe = null;
   for (const p of STATE.pipes){
-    // Aligned with step()'s collision check (`inX`) so the AI sees the
-    // truly-current pipe for as long as the bird's body actually
-    // overlaps it. Before this fix there was an 8-px window where
-    // the bird's tail was still inside the pipe's x extent but the
-    // AI had already switched to the next pipe.
-    if (!p.passed && p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r){
+    // The geometric boundary is aligned with step()'s inX collision
+    // box. NO `!p.passed` guard here — that was the fatal race: the
+    // pipe gets scored at p.x < 28 but the bird's body overlaps it
+    // until p.x < 20. If we drop the pipe at p.x=28, the AI targets
+    // the next pipe while still inside the current one, fires a flap
+    // that clips the upper lip, and dies. Now we keep the pipe as
+    // long as the bird actually sits inside it.
+    if (p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r){
       nextPipe = p; break;
     }
   }
