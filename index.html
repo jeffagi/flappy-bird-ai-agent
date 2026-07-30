@@ -665,7 +665,14 @@ function setScore(n){
 function detect(){
   let nextPipe = null;
   for (const p of STATE.pipes){
-    if (!p.passed && p.x + PIPE_W > STATE.bird.x - 4){ nextPipe = p; break; }
+    // Aligned with step()'s collision check (`inX`) so the AI sees the
+    // truly-current pipe for as long as the bird's body actually
+    // overlaps it. Before this fix there was an 8-px window where
+    // the bird's tail was still inside the pipe's x extent but the
+    // AI had already switched to the next pipe.
+    if (!p.passed && p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r){
+      nextPipe = p; break;
+    }
   }
   const gapTop = nextPipe ? nextPipe.gapY      : 0;
   const gapBot = nextPipe ? nextPipe.gapY + nextPipe.gapH : 0;
@@ -683,22 +690,27 @@ function detect(){
 const NEUTRAL_POL = { action:false, jump:0, no:1, delta:0, thr:24, conf:0 };
 function policy(obs){
   if (!obs.pipe) return { ...NEUTRAL_POL };
-  const mid = (obs.gapTop + obs.gapBot) / 2;
-  // Lookahead factor 5 — tracks current vy, so a falling bird targets higher
-  // (flap up sooner) and a rising bird targets lower (don't spam flaps).
-  const look = -obs.birdVy * 5;
-  const target = mid + look;
-  const thr = 24;
-  const delta = obs.birdY - target;
-  // 4-px safety margin: agent flaps *before* crossing target, never after.
-  const action = delta > -4;
-  // hard cap on ceiling — if somehow we get too close to the top of canvas
-  // don't flap (gravity is already pulling us down).
-  if (obs.birdY < 16) return { action:false, jump:0, no:1, delta, thr, conf:1 };
-  const z = delta / Math.max(1, thr);
-  const pjump = 1/(1+Math.exp(-z*1.8));
-  const conf = Math.min(1, (obs.confB||0)*(obs.confP||0) + (1-(obs.confP||0))*0.6);
-  return { action, jump:pjump, no:1-pjump, delta, thr, conf };
+  const birdR  = STATE.bird.r;
+  const gapTop = obs.gapTop;
+  const gapBot = obs.gapBot;
+  const mid    = (gapTop + gapBot) / 2;
+  // Post-flap rise in this physics (FLAP=-7.4, GRAV=0.45) is ~64 px:
+  //   rise = -FLAP*FLAP / (2*GRAV) - FLAP ~= (7.4*16.44) + 0.45*16.44*15.44/2 ~= 64 px
+  // If we aim at `mid`, the peak lands ~64 px above mid (= mid - 64).
+  // gap_top = mid - 70, so peak = mid - 64 collides with the upper pipe
+  // (peak's birdTop = mid - 76 < gapTop + 4 = mid - 66). Always dies.
+  //
+  // Fix: aim the controller at `mid + 24`. Flap occurs when birdY > mid+22,
+  // peak lands at mid + 22 - 64 = mid - 42 → top clear by 28 px → safe.
+  const target = mid + 24;
+  const delta  = obs.birdY - target;
+  let action   = delta > -2;          // 2-px preemptive
+  // Ceiling guards — never flap if we're about to punch into the upper pipe
+  // or the canvas top.
+  if (obs.birdY - birdR < gapTop + 6) action = false;
+  if (obs.birdY < 14)                 action = false;
+  const conf = 1;
+  return { action, jump:action?1:0, no:action?0:1, delta, thr:24, conf };
 }
 
 /* ------------------------------------------------------------
@@ -713,18 +725,27 @@ function policy(obs){
    ------------------------------------------------------------ */
 function safetyFlapIfNeeded(obs){
   if (!obs.pipe) return;
-  const birdR = 12;
-  const safety = 8;
-  // currently within the pipe's x extent
-  if (STATE.bird.x + birdR <= obs.pipe.x)              return;
-  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)     return;
-  // approaching lower pipe (bird is high above gap bottom but inside gap zone)
-  if (STATE.bird.y + birdR > obs.gapBot - safety){
+  const birdR  = STATE.bird.r;
+  const lowSafe = 6;
+  const upSafe  = 6;
+  // Stays narrow: only act when the bird's body actually overlaps the pipe.
+  if (STATE.bird.x + birdR <= obs.pipe.x)             return;  // entirely left of pipe
+  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)    return;  // entirely right of pipe
+
+  // LOWER-pipe emergency: flap if we're about to smash into the bottom pipe.
+  if (STATE.bird.y + birdR > obs.gapBot - lowSafe){
     STATE.bird.vy = FLAP;
     STATE.flapCount++;
+    return;
   }
-  // ceiling guard
-  if (STATE.bird.y - birdR < 8){
+  // UPPER-pipe emergency: damp any upward velocity so the bird stops
+  // rising before its top edge clips the upper pipe.
+  if (STATE.bird.y - birdR < obs.gapTop + upSafe){
+    STATE.bird.vy = Math.max(STATE.bird.vy, 0);
+    return;
+  }
+  // Canvas-top guard (only if there's no relevant pipe above us).
+  if (!obs.pipe && STATE.bird.y - birdR < 8){
     STATE.bird.vy = Math.max(STATE.bird.vy, 0);
   }
 }
