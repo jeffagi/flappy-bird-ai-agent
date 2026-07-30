@@ -255,7 +255,7 @@
       0 3px 0 #553210;
   }
   .go-medal::before{
-    content:"\2605";                ★
+    content:"\2605";
     position:absolute;
     inset:0;
     display:flex; align-items:center; justify-content:center;
@@ -957,7 +957,7 @@ document.addEventListener('keydown', (e) => {
     else flap();
   }
   if (e.code === 'KeyF')    setAi(!STATE.overlord);
-  if (e.code === 'KeyR' || e.code === 'Enter')    startGame();
+  if (e.code === 'KeyR')    startGame();
   if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(STATE.speed === 1 ? 2 : 1);
   if (e.code === 'KeyB'){
     // benchmark reset: clears the persisted BEST score
@@ -967,10 +967,19 @@ document.addEventListener('keydown', (e) => {
 
 // restart-on-click anywhere on game area
 document.addEventListener('pointerdown', (e) => {
-  if (e.target && e.target.id === 'ai-btn') return; // button has its own handler
+  if (e.target && e.target.closest){
+    // Bypass on canvas click if it landed on the AI button, the speed button,
+    // or anything inside the GAME OVER / READY veil (OK button, medal, panel).
+    if (e.target.closest('.veil'))               return;
+    if (e.target.id === 'ai-btn')                return;
+    if (e.target.id === 'speed-btn')             return;
+  }
   if (!STATE.running) startGame();
-  flap();
+  else flopSafeFlap();
 });
+
+// Safe flap that respects the running state \u2014 avoids the startGame-and-flap race.
+function flopSafeFlap(){ if (STATE.running) flap(); }
 
 /* ----------  MAIN LOOP  ---------- */
 /* ============================================================
