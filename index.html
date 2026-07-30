@@ -342,7 +342,7 @@
         <path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/>
       </svg>
       <span class="corner tl">AI · AGENT</span>
-      <span id="aiLabel">ACTIVATE AI AGENT</span>
+      <span id="aiLabel">🤖 AI Agent</span>
       <span class="corner br" id="aiStat">STANDBY</span>
     </button>
 
@@ -1052,7 +1052,7 @@ function setAi(on){
   STATE.overlord = !!on;
   aiBtn.classList.toggle('off', !on);
   aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  aiLabel.textContent = on ? '🤖 A.I. Engaged' : 'ACTIVATE AI AGENT';
+  aiLabel.textContent = on ? '🤖 A.I. Engaged' : '🤖 AI Agent';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   if (on && !STATE.running) startGame();
   aiBtn.classList.remove('firing'); void aiBtn.offsetWidth;
