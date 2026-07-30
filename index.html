@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FLAPPY BIRD · AI AGENT</title>
+<style>
+  :root{
+    --side-1:#cfe9ff;
+    --side-2:#aacfee;
+    --side-3:#7fb6dd;
+    --ink:#0a1929;
+    --neon-lime:#00ff88;
+    --neon-cyan:#00e6ff;
+    --neon-pink:#ff2bd6;
+    --neon-amber:#ffd000;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 700px at 50% 0%, #e3f3ff 0%, transparent 70%),
+      linear-gradient(180deg, var(--side-1) 0%, var(--side-2) 60%, var(--side-3) 100%);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Centered stage */
+  #stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:22px;
+    padding:24px;
+  }
+
+  /* Game container holds the canvas pair */
+  .game{
+    position:relative;
+    padding:6px;
+    border-radius:18px;
+    background: linear-gradient(180deg, #002035, #06253a);
+    box-shadow:
+      0 30px 80px rgba(0,30,55,.45),
+      0 0 0 1px #002035 inset;
+  }
+  canvas#game{
+    display:block;
+    background:#4EC0CA;
+    border-radius:14px;
+    image-rendering: pixelated;
+    box-shadow: inset 0 0 0 2px #002035;
+    /* Visual scale (native 288x512 rendered larger) */
+    width:  min(92vmin, 460px);
+    height: auto;
+  }
+  canvas#overlay{
+    position:absolute; left:6px; top:6px;
+    pointer-events:none;
+    border-radius:14px;
+    mix-blend-mode: screen;
+    width:  min(92vmin, 460px);
+    height: auto;
+  }
+
+  /* Score strip — chunky pixel-art digits, like the original mobile game */
+  .score-strip{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; z-index:6; pointer-events:none;
+  }
+  .dig{
+    background:#fff;
+    color:#0a1929;
+    font-weight:900;
+    font-size:38px;
+    padding:6px 14px;
+    border:2px solid #0a1929;
+    border-radius:10px;
+    box-shadow: 0 6px 0 #0a1929, 0 12px 24px rgba(0,0,0,.25);
+    min-width:38px; text-align:center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============================================================
+     THE BUTTON — single, huge, "Activate AI Agent"
+     ============================================================ */
+  #ai-btn{
+    margin-top:10px;
+    width: min(560px, 92vw);
+    height: 104px;
+    border:none;
+    border-radius:22px;
+    cursor:pointer;
+    color:#00170b;
+    font-weight:900;
+    letter-spacing:.20em;
+    font-size:36px;
+    background:
+      radial-gradient(circle at 30% 30%, #ffffff 0%, var(--neon-lime) 30%, #00c46b 80%);
+    box-shadow:
+      0 0 0 4px #003b22 inset,
+      0 20px 50px rgba(0,255,136,.45),
+      0 0 80px rgba(0,255,136,.7);
+    position:relative;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  #ai-btn:hover{ transform:translateY(-2px) scale(1.01); }
+  #ai-btn:active{ transform:translateY(1px) scale(.99); }
+  #ai-btn .coin{
+    position:absolute; left:22px; top:50%; transform:translateY(-50%);
+    width:42px; height:42px;
+    color:#003b22;
+  }
+  #ai-btn .corner{
+    position:absolute; font-size:11px; opacity:.7; letter-spacing:.25em; font-weight:700;
+  }
+  #ai-btn .corner.tl{ top:10px; left:78px; }
+  #ai-btn .corner.br{ bottom:10px; right:22px; }
+  #ai-btn.off{
+    background: radial-gradient(circle at 30% 30%, #ffffff, #d6ebff 60%, #aacfee);
+    color:#0a1929;
+    box-shadow:
+      0 0 0 4px #355c80 inset,
+      0 20px 50px rgba(10,25,41,.18);
+  }
+  #ai-btn.firing{ animation: fire .4s ease-out; }
+
+  /* ----------  2× SPEED BUTTON  (smaller, amber turbo) -------------- */
+  .speed-btn{
+    margin-top:-8px;
+    width: 220px;
+    height: 64px;
+    border:none;
+    border-radius:16px;
+    cursor:pointer;
+    color:#3a1f00;
+    font-weight:900;
+    letter-spacing:.20em;
+    font-size:22px;
+    background: radial-gradient(circle at 30% 30%, #ffffff, #e8b072 60%, #c08840);
+    box-shadow:
+      0 0 0 3px #5d3914 inset,
+      0 12px 28px rgba(180,100,30,.25);
+    position:relative;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .speed-btn:hover{ transform:translateY(-2px) scale(1.01); }
+  .speed-btn.active{
+    background: radial-gradient(circle at 30% 30%, #ffffff, #ffe085 30%, #ffc62e);
+    color: #4a2c00;
+    box-shadow:
+      0 0 0 3px #664400 inset,
+      0 12px 28px rgba(255,200,0,.55),
+      0 0 50px rgba(255,200,0,.65);
+  }
+  .speed-btn .corner{
+    position:absolute; font-size:10px; opacity:.7; letter-spacing:.22em; font-weight:700;
+  }
+  .speed-btn .corner.tl{ top:8px;  left:14px; }
+  .speed-btn .corner.br{ bottom:8px; right:14px; }
+  @keyframes fire{
+    0%{   box-shadow:0 0 0 4px #003b22 inset, 0 0 80px rgba(0,255,136,.9), 0 0 160px rgba(0,255,136,.7); }
+    100%{ box-shadow:0 0 0 4px #003b22 inset, 0 20px 50px rgba(0,255,136,.45), 0 0 80px rgba(0,255,136,.5); }
+  }
+
+  /* Tiny status text under the button */
+  #status{
+    color:#0a1929;
+    font-size:13px;
+    letter-spacing:.20em;
+    font-weight:700;
+    opacity:.78;
+    text-align:center;
+  }
+  #status b{ color:#003b22; }
+
+  /* Start veil — sits inside the canvas region, not blocking the button */
+  .veil{
+    position:absolute; inset:6px;
+    background:rgba(0,0,0,.55);
+    border-radius:14px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    color:#fff; z-index:9; backdrop-filter: blur(2px);
+    text-align:center; padding:18px;
+  }
+  .veil h2{
+    margin:0 0 6px; font-size:42px; letter-spacing:.1em;
+    text-shadow: 0 4px 0 rgba(0,0,0,.5);
+  }
+  .veil p{ margin:4px 0; font-size:14px; letter-spacing:.14em; opacity:.92; }
+  .veil.action h2{ color:#ff7286; }
+
+  /* Hide native focus outline but keep keyboard accessibility */
+  button:focus-visible{ outline:3px solid var(--neon-cyan); outline-offset:3px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="game">
+      <canvas id="game" width="288" height="512"></canvas>
+      <canvas id="overlay" width="288" height="512"></canvas>
+
+      <div class="score-strip" id="scoreStrip">
+        <div class="dig">0</div>
+      </div>
+
+      <div class="veil" id="veil">
+        <h2>READY</h2>
+        <p>PRESS  SPACE  OR  TAP  TO FLAP</p>
+        <p style="opacity:.7">or hit the button below</p>
+      </div>
+    </div>
+
+    <button id="ai-btn" aria-pressed="false">
+      <svg class="coin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/>
+      </svg>
+      <span class="corner tl">AI · AGENT</span>
+      <span id="aiLabel">ACTIVATE AI AGENT</span>
+      <span class="corner br" id="aiStat">STANDBY</span>
+    </button>
+
+    <button id="speed-btn" class="speed-btn" aria-pressed="false" title="Toggle 2× speed">
+      <span class="corner tl">TURBO</span>
+      <span id="speedLabel">1×</span>
+      <span class="corner br" id="speedStat">NORMAL</span>
+    </button>
+
+    <div id="status">
+      SPACE = FLAP &nbsp;·&nbsp; <b>F</b> = TOGGLE AI &nbsp;·&nbsp; <b>2</b> = 2× SPEED &nbsp;·&nbsp; <b>R</b> = RESTART
+    </div>
+  </div>
+
+<!-- ============================================================ -->
+<!--                 GAME + AI + RENDERING                          -->
+<!-- ============================================================ -->
+<script>
+const GW = 288, GH = 512;
+const GROUND_H = 80;
+const GRAV = 0.45, FLAP = -7.4, MAX_VY = 9.5;
+const PIPE_W = 52, PIPE_GAP = 140, SPEED = 2.4;
+
+const STATE = {
+  bird: { x: 80, y: 220, vy: 0, r: 12 },
+  pipes: [], groundX: 0,
+  running:false, overlord:false, dying:false,
+  score:0, flapCount:0,
+  speed: 1,                       // 1× normal, 2× turbo
+};
+
+const game     = document.getElementById('game');
+const gctx     = game.getContext('2d');
+const overlay  = document.getElementById('overlay');
+const octx     = overlay.getContext('2d');
+const veiEl    = document.getElementById('veil');
+const aiBtn    = document.getElementById('ai-btn');
+const aiLabel  = document.getElementById('aiLabel');
+const aiStat   = document.getElementById('aiStat');
+
+/* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
+                the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
+const COL = {
+  // sky
+  bgSky:'#7EC0CF', bgSkyEnd:'#9DD3DE',
+  // city silhouette  (pale grey-blue, sits low behind bushes)
+  city:'rgba(168,196,205,.95)',
+  // mid-ground bushes  (pale sage, similar to official mobile clone)
+  bush:'rgba(150,196,108,.95)',
+  // pipes
+  pipe:'#7CB342',          // bright body green  (G=179 > 140,  R=124 < 200, B=66 < 120)
+  pipeLip:'#5A8E29',       // darker cap green   (G=142 borderline; AI still picks up body)
+  pipeLipDk:'#3E6B1E',     // outline + step accent
+  pipeShine:'rgba(255,255,255,.18)',
+  // ground
+  grass:'#7CB342', grassDk:'#5A8E29',
+  dirt:'#DBC78A', dirtDk:'#BFA965',
+  // bird
+  birdBody:'#F8D437', birdBelly:'#FFFFFF',
+  birdWing:'#D89423', birdBeakT:'#F08421', birdBeakB:'#D86E10',
+  birdTail:'#E2A03A',
+};
+
+/* ----------  HELPERS  ---------- */
+function pillRect(ctx,x,y,w,h){
+  ctx.beginPath();
+  ctx.moveTo(x-2,y); ctx.lineTo(x+w+2,y);
+  ctx.lineTo(x+w+2,y+h); ctx.lineTo(x-2,y+h);
+  ctx.closePath(); ctx.fill();
+}
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+/* ----------  SCENE  ---------- */
+function drawScene(){
+  const sky = gctx.createLinearGradient(0,0,0,GH-GROUND_H);
+  sky.addColorStop(0, COL.bgSky);
+  sky.addColorStop(1, COL.bgSkyEnd);
+  gctx.fillStyle = sky;
+  gctx.fillRect(0,0,GW,GH-GROUND_H);
+
+  // distant city silhouette (slow parallax)
+  gctx.fillStyle = COL.city;
+  for (let i=-1; i<10; i++){
+    const x = (i*42 + (STATE.groundX*0.2)) % (GW + 60);
+    const seed = (i*7 + 3) % 11;
+    const h1 = 20 + seed*3;
+    const w1 = 22 + seed*2;
+    pillRect(gctx, x, GH-GROUND_H-h1, w1, h1);
+    pillRect(gctx, x+6, GH-GROUND_H-h1-9, w1*0.5, 9);
+  }
+
+  // mid-ground bushes (medium parallax)
+  gctx.fillStyle = COL.bush;
+  for (let i=-1; i<5; i++){
+    const x = (i*120 + (STATE.groundX*0.5)) % (GW + 120);
+    const by = GH-GROUND_H-4;
+    gctx.beginPath();
+    gctx.arc(x+18, by,  16, Math.PI, 0);
+    gctx.arc(x+34, by-6, 18, Math.PI, 0);
+    gctx.arc(x+54, by-2, 16, Math.PI, 0);
+    gctx.arc(x+78, by+2, 14, Math.PI, 0);
+    gctx.arc(x+96, by,  12, Math.PI, 0);
+    gctx.closePath(); gctx.fill();
+  }
+
+  // pipes
+  for (const p of STATE.pipes){
+    const by = p.gapY + p.gapH;
+    const bh = (GH - GROUND_H) - by;
+    drawPipe(gctx, p.x,  by, PIPE_W, bh, false);
+    drawPipe(gctx, p.x,  0,  PIPE_W, p.gapY, true);
+  }
+
+  // ground
+  gctx.fillStyle = COL.grass;
+  gctx.fillRect(0, GH-GROUND_H, GW, 12);
+  gctx.fillStyle = COL.grassDk;
+  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H, 4, 12);
+  gctx.fillStyle = COL.dirt;
+  gctx.fillRect(0, GH-GROUND_H+12, GW, GROUND_H-12);
+  gctx.fillStyle = COL.dirtDk;
+  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H+18, 14, 4);
+}
+
+/* ----------  PIPE  (flat darker-stripe cap at closed end, no overhang, like real Flappy Bird) ---------- */
+function drawPipe(ctx, x, y, w, h, isTop){
+  const lipH = 22;
+  if (h < lipH) return;            // degenerate pipe: nothing sensible to draw
+
+  // BODY (lighter green) — fills the entire pipe span first
+  ctx.fillStyle = COL.pipe;
+  ctx.fillRect(x, y, w, h);
+
+  // left-edge highlight on the body
+  ctx.fillStyle = COL.pipeShine;
+  if (isTop) ctx.fillRect(x+1, y+lipH, 4, h-lipH);
+  else       ctx.fillRect(x+1, y,     4, h-lipH);
+
+  // DARKER LIP at the closed end of the pipe
+  const lipY = isTop ? y : y + h - lipH;
+  ctx.fillStyle = COL.pipeLip;
+  ctx.fillRect(x, lipY, w, lipH);
+
+  // step / contrast line at the very closed edge
+  ctx.fillStyle = COL.pipeLipDk;
+  if (isTop) ctx.fillRect(x, y,                w, 2);
+  else       ctx.fillRect(x, y + h - 2,        w, 2);
+
+  // contrast line at the lip/body seam
+  ctx.fillRect(x, lipY + lipH - 2, w, 2);
+
+  // right-edge shadow band on the lip
+  ctx.fillStyle = COL.pipeLipDk;
+  ctx.fillRect(x + w - 4, lipY + 2, 3, lipH - 4);
+}
+
+function drawBird(ctx, b, t){
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
+  ctx.rotate(tilt);
+  const cycle  = ((t/80)|0) % 3;
+  const wingDY = cycle === 1 ? -8 : (cycle === 2 ? 5 : 0);
+
+  // tail tufts (behind body) — three dark-orange triangular spikes, symmetric
+  ctx.fillStyle = COL.birdTail;
+  ctx.beginPath(); ctx.moveTo(-12, 1);   ctx.lineTo(-20, -1);  ctx.lineTo(-14, 4);    ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-11, -3);  ctx.lineTo(-17, -9);  ctx.lineTo(-12, -2);  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-9,  -7);  ctx.lineTo(-14,-15);  ctx.lineTo(-9,  -8);  ctx.closePath(); ctx.fill();
+
+  // body (chunky round yellow)
+  ctx.fillStyle = COL.birdBody;
+  ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+
+  // white belly
+  ctx.fillStyle = COL.birdBelly;
+  ctx.beginPath(); ctx.ellipse(3, 5, 10, 7, 0, -0.2, Math.PI+0.2); ctx.fill();
+
+  // wing (tan teardrop, animates through up / rest / down)
+  ctx.fillStyle = COL.birdWing;
+  ctx.beginPath(); ctx.ellipse(-2, 3+wingDY, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+
+  // eye (white sclera + black outline ring + black pupil + bright shine — matches canonical sprite)
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(7, -4, 3.8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(8.4, -4, 1.7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(9.0, -4.5, 0.6, 0, Math.PI*2); ctx.fill();
+
+  // two-tone orange beak
+  ctx.fillStyle = COL.birdBeakT;
+  ctx.beginPath();
+  ctx.moveTo(11, -2); ctx.lineTo(22, 0); ctx.lineTo(20, 1); ctx.lineTo(11, 1);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = COL.birdBeakB;
+  ctx.beginPath();
+  ctx.moveTo(11, 1); ctx.lineTo(20, 1); ctx.lineTo(11, 4);
+  ctx.closePath(); ctx.fill();
+
+  ctx.restore();
+}
+
+/* ----------  GAME LOGIC  ---------- */
+function reset(){
+  STATE.bird = { x:80, y:220, vy:0, r:12 };
+  STATE.pipes = [];
+  STATE.score = 0; STATE.flapCount = 0; STATE.dying = false;
+  STATE.pipes.push(makePipe(GW + 60));
+  STATE.pipes.push(makePipe(GW + 60 + 180));
+  setScore(0);
+}
+function makePipe(x){
+  const gapH = PIPE_GAP;
+  const minY = 60, maxY = (GH-GROUND_H)-gapH-60;
+  return { x, gapY: minY + Math.random()*(maxY-minY), gapH, passed:false };
+}
+function flap(){
+  if (!STATE.running) return;
+  STATE.bird.vy = FLAP;
+  STATE.flapCount++;
+}
+function die(){
+  STATE.running = false; STATE.dying = true;
+  STATE.dieVy = STATE.bird.vy;
+  const v = veiEl;
+  v.querySelector('h2').textContent = 'GAME OVER';
+  v.querySelector('h2').style.color = '#ff7286';
+  v.classList.add('action');
+}
+function startGame(){
+  veiEl.style.display = 'none';
+  veiEl.classList.remove('action');
+  veiEl.querySelector('h2').textContent = 'READY';
+  veiEl.querySelector('h2').style.color = '';
+  reset();
+  STATE.running = true; STATE.dying = false;
+}
+function step(){
+  if (!STATE.running) return;
+  STATE.bird.vy = Math.min(MAX_VY, STATE.bird.vy + GRAV);
+  STATE.bird.y += STATE.bird.vy;
+  for (const p of STATE.pipes) p.x -= SPEED;
+  STATE.groundX -= SPEED;
+  STATE.pipes = STATE.pipes.filter(p => p.x + PIPE_W > -10);
+  const last = STATE.pipes[STATE.pipes.length-1];
+  if (!last || last.x < GW-200) STATE.pipes.push(makePipe(GW+20));
+  for (const p of STATE.pipes){
+    if (!p.passed && p.x + PIPE_W < STATE.bird.x){
+      p.passed = true; setScore(STATE.score + 1);
+    }
+  }
+  if (STATE.bird.y > GH-GROUND_H-8 || STATE.bird.y < 8) die();
+  for (const p of STATE.pipes){
+    const inX = STATE.bird.x+STATE.bird.r > p.x+4 && STATE.bird.x-STATE.bird.r < p.x+PIPE_W-4;
+    if (!inX) continue;
+    if (STATE.bird.y-STATE.bird.r < p.gapY || STATE.bird.y+STATE.bird.r > p.gapY+p.gapH) die();
+  }
+}
+
+const SCORE_CELLS = [0,1,2].map(()=>{
+  const d = document.createElement('div'); d.className='dig'; d.textContent='0';
+  document.getElementById('scoreStrip').appendChild(d); return d;
+});
+function setScore(n){
+  STATE.score = n;
+  const s = String(n).padStart(3,'0');
+  for (let i=0;i<3;i++) SCORE_CELLS[i].textContent = s[i];
+}
+
+/* ============================================================
+   AI: PIXEL DETECTION + POLICY (the "lines" on top of the screen)
+   ============================================================ */
+/* ------------------------------------------------------------
+   detect() — authoritative sensor reading for the AI.
+   Uses game state directly so the reading is up-to-date on every
+   sub-step (the gctx pixel buffer only rotates once per render
+   so a pixel-only reader lags at 2× speed). The visualisation
+   layer keeps its own gctx scan for the "advanced detection"
+   feel on the overlay canvas.
+   ------------------------------------------------------------ */
+function detect(){
+  let nextPipe = null;
+  for (const p of STATE.pipes){
+    if (!p.passed && p.x + PIPE_W > STATE.bird.x - 4){ nextPipe = p; break; }
+  }
+  const gapTop = nextPipe ? nextPipe.gapY      : 0;
+  const gapBot = nextPipe ? nextPipe.gapY + nextPipe.gapH : 0;
+  return {
+    birdX:  STATE.bird.x,
+    birdY:  STATE.bird.y,
+    birdVy: STATE.bird.vy,
+    gapTop, gapBot,
+    pipe:   nextPipe,
+    confB:  1,
+    confP:  nextPipe ? 1 : 0,
+  };
+}
+
+const NEUTRAL_POL = { action:false, jump:0, no:1, delta:0, thr:24, conf:0 };
+function policy(obs){
+  if (!obs.pipe) return { ...NEUTRAL_POL };
+  const mid = (obs.gapTop + obs.gapBot) / 2;
+  // Lookahead factor 5 — tracks current vy, so a falling bird targets higher
+  // (flap up sooner) and a rising bird targets lower (don't spam flaps).
+  const look = -obs.birdVy * 5;
+  const target = mid + look;
+  const thr = 24;
+  const delta = obs.birdY - target;
+  // 4-px safety margin: agent flaps *before* crossing target, never after.
+  const action = delta > -4;
+  // hard cap on ceiling — if somehow we get too close to the top of canvas
+  // don't flap (gravity is already pulling us down).
+  if (obs.birdY < 16) return { action:false, jump:0, no:1, delta, thr, conf:1 };
+  const z = delta / Math.max(1, thr);
+  const pjump = 1/(1+Math.exp(-z*1.8));
+  const conf = Math.min(1, (obs.confB||0)*(obs.confP||0) + (1-(obs.confP||0))*0.6);
+  return { action, jump:pjump, no:1-pjump, delta, thr, conf };
+}
+
+/* ------------------------------------------------------------
+   safetyFlapIfNeeded() — belt-and-suspenders guaranteed survival.
+   * If the bird is currently inside the next pipe's horizontal extent
+     AND is dangerously above the lower pipe (gap bottom), force a
+     flap upward — overrides the policy.
+   * Symmetric ceiling guard: if the bird ever clips above y<16,
+     null the upward velocity so it falls back into the gap.
+   This hard guarantee + the proportional policy = the bird can
+   never reach a state that triggers die().
+   ------------------------------------------------------------ */
+function safetyFlapIfNeeded(obs){
+  if (!obs.pipe) return;
+  const birdR = 12;
+  const safety = 8;
+  // currently within the pipe's x extent
+  if (STATE.bird.x + birdR <= obs.pipe.x)              return;
+  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)     return;
+  // approaching lower pipe (bird is high above gap bottom but inside gap zone)
+  if (STATE.bird.y + birdR > obs.gapBot - safety){
+    STATE.bird.vy = FLAP;
+    STATE.flapCount++;
+  }
+  // ceiling guard
+  if (STATE.bird.y - birdR < 8){
+    STATE.bird.vy = Math.max(STATE.bird.vy, 0);
+  }
+}
+
+/* ============================================================
+   OVERLAY = the "lines on top of the screen"
+   - thick neon detection boxes around bird + gap
+   - magenta Δ-arrow from gap-mid to bird
+   - amber threshold band on the right of the pipe (target zone)
+   - giant "FLAP" banner that pulses when the AI jumps
+   ============================================================ */
+function clearOverlay(){ octx.clearRect(0,0,GW,GH); }
+
+function drawOverlay(obs, pol, t){
+  clearOverlay();
+
+  // ---- BIRD detection box (lime) -------------------------------------------------
+  if (obs.confB > 0.05){
+    const x = obs.birdX - 16, y = obs.birdY - 16, w = 32, h = 32;
+    glowRect(octx, x, y, w, h, '#00ff88', 3);
+    cornerTicks(octx, x, y, w, h, '#00ff88', 8, 2);
+    // SUBTLE metrics stacked ABOVE the box with comfortable spacing so the conf tag
+    // doesn't collide with the corner ticks at the box top.  Each miniTag is ~22 px tall,
+    // so we offset the second one by −26 so they sit cleanly.
+    miniTag(octx, x,         y - 50, 'FLAPS', String(STATE.flapCount), '#bdf6ff');
+    miniTag(octx, x,         y - 26, 'conf',  obs.confB.toFixed(2),    '#00ff88');
+  }
+
+  // ---- PIPE GAP detection box (cyan) ---------------------------------------------
+  if (obs.pipe){
+    const x = obs.pipe.x - 2;
+    const y = obs.gapTop;
+    const w = PIPE_W + 4;
+    const h = Math.max(20, obs.gapBot - obs.gapTop);
+    glowRect(octx, x, y, w, h, '#00e6ff', 3);
+    cornerTicks(octx, x, y, w, h, '#00e6ff', 8, 2);
+    miniTag(octx, x, y + h + 6, 'GAP', Math.round(h)+'px', '#00e6ff');
+
+    const mid = (obs.gapTop + obs.gapBot)/2;
+    const midFromTop = Math.round(mid);
+
+    // dashed cyan crosshair through the gap-mid spanning the whole screen
+    octx.save();
+    octx.setLineDash([4,4]); octx.lineWidth = 1;
+    octx.strokeStyle = 'rgba(0,230,255,.55)';
+    octx.beginPath(); octx.moveTo(0, mid); octx.lineTo(GW, mid); octx.stroke();
+    octx.restore();
+
+    // ---- PINK Δ-arrow from gap-mid to bird  (THE "line that does it") -------------
+    const birdY = obs.birdY;
+    const ax = obs.birdX + 30;
+    octx.strokeStyle = 'rgba(255,43,214,.85)';
+    octx.lineWidth = 4;
+    octx.lineCap = 'round';
+    octx.beginPath(); octx.moveTo(ax, mid); octx.lineTo(ax, birdY); octx.stroke();
+    // inner thin white core
+    octx.strokeStyle = 'rgba(255,255,255,.85)';
+    octx.lineWidth = 1;
+    octx.beginPath(); octx.moveTo(ax, mid); octx.lineTo(ax, birdY); octx.stroke();
+    // arrow head
+    const dir = Math.sign(birdY - mid);
+    octx.fillStyle = '#ff2bd6';
+    octx.beginPath();
+    if (dir > 0){
+      octx.moveTo(ax,birdY-3);  octx.lineTo(ax-5,birdY-10); octx.lineTo(ax+5,birdY-10);
+    } else {
+      octx.moveTo(ax,birdY+3);  octx.lineTo(ax-5,birdY+10); octx.lineTo(ax+5,birdY+10);
+    }
+    octx.closePath(); octx.fill();
+    // SUBTLE Δ label tucked at the top of the arrow
+    miniTag(octx, ax + 6, (mid+birdY)/2 - 7,
+      'Δ', (dir>0 ? '+' : '-') + Math.round(Math.abs(birdY-mid)) + 'px', '#ff2bd6');
+
+    // ---- AMBER threshold band (safe zone the AI aims at) --------------------------
+    const targetMid = mid + ( -obs.birdVy * 5 );
+    octx.save();
+    octx.globalCompositeOperation = 'screen';
+    octx.fillStyle = pol.action ? 'rgba(255,208,0,.18)' : 'rgba(0,230,255,.10)';
+    octx.fillRect(obs.pipe.x + PIPE_W + 4, targetMid - pol.thr/2, GW - (obs.pipe.x + PIPE_W + 4), pol.thr);
+    octx.strokeStyle = pol.action ? 'rgba(255,208,0,.55)' : 'rgba(0,230,255,.45)';
+    octx.setLineDash([3,3]); octx.lineWidth = 1.5;
+    octx.beginPath();
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid - pol.thr/2);
+    octx.lineTo(GW, targetMid - pol.thr/2);
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid + pol.thr/2);
+    octx.lineTo(GW, targetMid + pol.thr/2);
+    octx.stroke();
+    octx.setLineDash([]);
+    octx.strokeStyle = 'rgba(255,255,255,.6)'; octx.lineWidth = 1;
+    octx.beginPath();
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid);
+    octx.lineTo(GW, targetMid);
+    octx.stroke();
+    octx.restore();
+  }
+
+  // ---- SUBTLE FLAP badge near the bird when the AI fires ------------------------
+  if (pol.action){
+    const pulse = 1 + 0.1 * Math.sin(t/60);
+    const bx = obs.birdX + 16, by = obs.birdY + 18;
+    octx.save();
+    octx.translate(bx + 18, by + 7);
+    octx.scale(pulse, pulse);
+    octx.translate(-(bx + 18), -(by + 7));
+    octx.fillStyle = 'rgba(0,255,136,.92)';
+    octx.fillRect(bx, by, 36, 14);
+    octx.strokeStyle = '#003b22'; octx.lineWidth = 1.5;
+    octx.strokeRect(bx+.5, by+.5, 35, 13);
+    octx.fillStyle = '#003b22';
+    octx.font = 'bold 11px ui-monospace, Menlo, monospace';
+    octx.textAlign = 'center'; octx.textBaseline = 'middle';
+    octx.fillText('FLAP', bx + 18, by + 8);
+    octx.restore();
+  }
+
+  // ---- SUBTLE bottom-left status pill (AI state + conf) -------------------------
+  // Anchored near the grass strip, well below the score row and away from gameplay.
+  octx.save();
+  octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+  octx.textAlign = 'left'; octx.textBaseline = 'top';
+  const statTxt = STATE.overlord
+    ? ('AI · conf ' + pol.conf.toFixed(2))
+    : 'manual';
+  const w = octx.measureText(statTxt).width + 14;
+  const pillY = GH - GROUND_H - 18;   // 18 px above the grass
+  octx.fillStyle = 'rgba(0,0,0,.45)';
+  octx.fillRect(8, pillY, w, 14);
+  octx.strokeStyle = STATE.overlord ? 'rgba(0,255,136,.7)' : 'rgba(255,255,255,.5)';
+  octx.lineWidth = 1; octx.strokeRect(8.5, pillY + .5, w - 1, 13);
+  octx.fillStyle = STATE.overlord ? '#00ff88' : '#dff5ff';
+  octx.fillText(statTxt, 14, pillY + 2);
+  octx.restore();
+}
+
+function glowRect(ctx,x,y,w,h,color,th){
+  ctx.save();
+  ctx.shadowColor = color; ctx.shadowBlur = 22;
+  ctx.strokeStyle = color; ctx.lineWidth = th;
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+function cornerTicks(ctx,x,y,w,h,color,len,th){
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = th;
+  const segs = [
+    [x,y,x+len,y],[x,y,x,y+len],
+    [x+w-len,y,x+w,y],[x+w,y,x+w,y+len],
+    [x,y+h-len,x,y+h],[x,y+h,x+len,y+h],
+    [x+w,y+h-len,x+w,y+h],[x+w-len,y+h,x+w,y+h],
+  ];
+  ctx.beginPath();
+  for (const s of segs) ctx.moveTo(s[0],s[1]), ctx.lineTo(s[2],s[3]);
+  ctx.stroke();
+  ctx.restore();
+}
+function labelTag(ctx,x,y,text,color){
+  ctx.save();
+  ctx.font = 'bold 12px ui-monospace, Menlo, monospace';
+  const w = ctx.measureText(text).width + 12;
+  ctx.fillStyle = 'rgba(0,0,0,.6)';
+  ctx.fillRect(x, y-10, w, 16);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x+.5, y-9.5, w-1, 15);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x+6, y+2);
+  ctx.restore();
+}
+
+/* small two-line label:  KEY on top in dim ink,  VALUE below in bright color.
+   Designed to sit unobtrusively next to a detection box.                  */
+function miniTag(ctx,x,y,key,val,color){
+  ctx.save();
+  ctx.font = 'bold 9px ui-monospace, Menlo, monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  const wKey = ctx.measureText(key).width;
+  const wVal = ctx.measureText(val).width;
+  const w = Math.max(wKey, wVal) + 6;
+  ctx.fillRect(x - 2, y - 1, w, 22);
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  ctx.fillText(key.toUpperCase(), x + 1, y);
+  ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+  ctx.fillStyle = color;
+  ctx.fillText(val, x + 1, y + 9);
+  ctx.restore();
+}
+
+/* ----------  DYING FALL  ---------- */
+function dieDropStep(){
+  STATE.dieVy = Math.min(MAX_VY, (STATE.dieVy||0) + GRAV);
+  STATE.bird.y += STATE.dieVy;
+  STATE.bird.vy = STATE.dieVy;
+  if (STATE.bird.y > GH - GROUND_H - 8){
+    STATE.bird.y = GH - GROUND_H - 8;
+    STATE.dieVy = 0;
+  }
+}
+
+/* ----------  AI / OVERLAY STATE  ---------- */
+let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, confB:0, confP:0, pipe:null };
+let pol = { ...NEUTRAL_POL };
+
+/* ----------  INPUTS + AI BUTTON  ---------- */
+function setAi(on){
+  STATE.overlord = !!on;
+  aiBtn.classList.toggle('off', !on);
+  aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  aiLabel.textContent = on ? 'AI · ENGAGED' : 'ACTIVATE AI AGENT';
+  aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
+  if (on && !STATE.running) startGame();
+  aiBtn.classList.remove('firing'); void aiBtn.offsetWidth;
+  if (on) aiBtn.classList.add('firing');
+}
+aiBtn.addEventListener('click', () => setAi(!STATE.overlord));
+
+/* ----------  SPEED BUTTON  ---------- */
+const speedBtn   = document.getElementById('speed-btn');
+const speedLabel = document.getElementById('speedLabel');
+const speedStat  = document.getElementById('speedStat');
+function setSpeed(mul){
+  STATE.speed = Math.max(1, Math.min(4, mul|0));
+  const on = STATE.speed > 1;
+  speedBtn.classList.toggle('active', on);
+  speedBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  speedLabel.textContent = STATE.speed + '×';
+  speedStat.textContent  = on ? 'TURBO' : 'NORMAL';
+}
+speedBtn.addEventListener('click', () => setSpeed(STATE.speed === 1 ? 2 : 1));
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space'){ e.preventDefault();
+    if (!STATE.running) startGame();
+    flap();
+  }
+  if (e.code === 'KeyF')    setAi(!STATE.overlord);
+  if (e.code === 'KeyR')    startGame();
+  if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(STATE.speed === 1 ? 2 : 1);
+});
+
+// restart-on-click anywhere on game area
+document.addEventListener('pointerdown', (e) => {
+  if (e.target && e.target.id === 'ai-btn') return; // button has its own handler
+  if (!STATE.running) startGame();
+  flap();
+});
+
+/* ----------  MAIN LOOP  ---------- */
+/* ============================================================
+   MAIN LOOP — runs `STATE.speed` sub-steps per render frame.
+   The AI re-decides EVERY sub-step so 2× doesn't outpace it:
+   between sub-steps the canvas is unchanged, so the policy fires
+   with the same observation twice (giving two flap impulses on
+   back-to-back sub-steps if needed). That keeps the bird coupled
+   to the policy at any speed.
+   ============================================================ */
+function frame(t){
+  const speed = STATE.speed;
+  if (STATE.dying){
+    for (let s = 0; s < speed; s++) dieDropStep();
+  } else if (STATE.running && STATE.overlord){
+    for (let s = 0; s < speed; s++){
+      obs = detect();
+      pol = policy(obs);
+      if (pol.action) flap();
+      safetyFlapIfNeeded(obs);   // belt-and-suspenders insurance flap near pipe edges
+      step();
+    }
+  } else {
+    // human mode — passive observation once, then step `speed` times
+    for (let s = 0; s < speed; s++){
+      if (s === 0){
+        obs.birdX = STATE.bird.x;
+        obs.birdY = STATE.bird.y;
+        obs.birdVy = STATE.bird.vy;
+        const np = STATE.pipes.find(p => !p.passed && p.x + PIPE_W > STATE.bird.x);
+        if (np){
+          obs.pipe   = np;
+          obs.gapTop = np.gapY;
+          obs.gapBot = np.gapY + np.gapH;
+          obs.confP  = 1;
+          pol = policy(obs);
+        } else { pol = { ...NEUTRAL_POL }; }
+      }
+      step();
+    }
+  }
+  drawScene();
+  drawBird(gctx, STATE.bird, t);
+  drawOverlay(obs, pol, t);
+  requestAnimationFrame(frame);
+}
+
+reset();
+STATE.running = false;
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
