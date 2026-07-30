@@ -372,6 +372,7 @@ const STATE = {
   running:false, overlord:false, dying:false,
   score:0, flapCount:0,
   speed: 1,                       // 1× normal, 2× turbo
+  lastLevel: 1, levelUpAt: 0,     // level-progression tracking (display + flash)
 };
 
 const game     = document.getElementById('game');
@@ -610,6 +611,10 @@ function startGame(){
   document.getElementById('goTitle').textContent = 'READY';
   reset();
   STATE.running = true; STATE.dying = false;
+  // Reset the level-progression tracking so the bottom-right pill
+  // doesn't show a stale "LEVEL 9 · 0/200" after a restart.
+  STATE.lastLevel = 1;
+  STATE.levelUpAt = 0;
 }
 function step(){
   if (!STATE.running) return;
@@ -852,6 +857,44 @@ function drawOverlay(obs, pol, t){
   octx.fillStyle = STATE.overlord ? '#00ff88' : '#dff5ff';
   octx.fillText(statTxt, 14, pillY + 2);
   octx.restore();
+
+  // ---- SUBTLE bottom-right LEVEL pill (pipes cleared → level)  -----------------
+  octx.save();
+  octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+  octx.textAlign = 'right'; octx.textBaseline = 'top';
+  const lvlTxt = 'LEVEL ' + STATE.lastLevel + ' · ' + STATE.score + '/200';
+  const lw = octx.measureText(lvlTxt).width + 14;
+  octx.fillStyle = 'rgba(0,0,0,.45)';
+  octx.fillRect(GW - lw - 8, pillY, lw, 14);
+  octx.strokeStyle = 'rgba(255,200,0,.75)';
+  octx.lineWidth = 1; octx.strokeRect(GW - lw - 8 + .5, pillY + .5, lw - 1, 13);
+  octx.fillStyle = '#ffd000';
+  octx.fillText(lvlTxt, GW - 14, pillY + 2);
+  octx.restore();
+
+  // ---- LEVEL-UP FLASH  (0.9s solid, 0.4s fade)  ---------------------------------
+  if (STATE.lastLevel > 1 && performance.now() - STATE.levelUpAt < 1300){
+    const elapsed = performance.now() - STATE.levelUpAt;
+    const opacity = elapsed < 900 ? 1 : Math.max(0, (1300 - elapsed) / 400);
+    octx.save();
+    octx.globalAlpha = opacity;
+    // Anchored top-center, well above the FLAP badge band (which sits
+    // beneath the bird at birdY+18) so a level-up never collides with it.
+    octx.translate(GW/2, GH/2 - 150);
+    octx.font = 'bold 38px ui-monospace, Menlo, monospace';
+    octx.textAlign = 'center'; octx.textBaseline = 'middle';
+    octx.shadowColor = '#ffd000'; octx.shadowBlur = 26;
+    octx.fillStyle = '#ffd000';
+    octx.fillText('LEVEL ' + STATE.lastLevel, 0, 0);
+    octx.shadowBlur = 0;
+    octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+    octx.fillStyle = '#ffffff';
+    // Subline sits ABOVE the LEVEL text so it never visually masks
+    // the bird, which is typically at y≈130–150 immediately after
+    // a level boundary cross.
+    octx.fillText('UNBEATABLE AGENT', 0, -32);
+    octx.restore();
+  }
 }
 
 function glowRect(ctx,x,y,w,h,color,th){
@@ -921,6 +964,11 @@ function dieDropStep(){
 /* ----------  AI / OVERLAY STATE  ---------- */
 let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, confB:0, confP:0, pipe:null };
 let pol = { ...NEUTRAL_POL };
+
+// ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
+// lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
+function currentLevel(score){ return Math.floor(score / 25) + 1; }
+function currentLevel(score){ return Math.floor(score / 25) + 1; }
 
 /* ----------  INPUTS + AI BUTTON  ---------- */
 function setAi(on){
@@ -1020,6 +1068,12 @@ function frame(t){
       }
       step();
     }
+  }
+  // ----- LEVEL progression check -----
+  const lvl = currentLevel(STATE.score);
+  if (lvl > STATE.lastLevel){
+    STATE.lastLevel = lvl;
+    if (lvl > 1) STATE.levelUpAt = performance.now();   // level #1 is boot, don't flash
   }
   drawScene();
   drawBird(gctx, STATE.bird, t);
