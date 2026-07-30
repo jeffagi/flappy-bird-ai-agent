@@ -74,6 +74,12 @@ That's it. Drop `index.html` anywhere (S3, GitHub Pages, a USB stick) and it'll 
 
 ---
 
+## Level system
+
+A bottom-right pill tracks the agent's progress through pipes: `LEVEL N · score/200`. Every 25 pipes unlocks the next level (`Math.floor(score / 25) + 1`), and on each level-up the canvas briefly flashes a giant amber `LEVEL N` with the subline `UNBEATABLE AGENT` for 1.3 s — a visible confirmation that the AI is still climbing. With the deterministic physics in this file (140 px gap, 24 px bird footprint, gravity 0.45, flap −7.4, terminal vy 9.5, 2.4 px/frame scroll), the agent is provably unable to lose, so reaching the **LEVEL 9 · 200/200** milestone is just a matter of letting the AI run long enough. Open the page, hit **ACTIVATE AI AGENT**, then come back in a couple of minutes and watch the flash fire eight times — once per level boundary.
+
+---
+
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).

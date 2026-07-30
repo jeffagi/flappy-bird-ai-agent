@@ -41,17 +41,17 @@
     position:relative;
     padding:6px;
     border-radius:18px;
-    background: linear-gradient(180deg, #002035, #06253a);
+    background: linear-gradient(180deg, #87CEEB, #4EC0CA);
     box-shadow:
-      0 30px 80px rgba(0,30,55,.45),
-      0 0 0 1px #002035 inset;
+      0 30px 80px rgba(0,60,100,.35),
+      0 0 0 2px #5ba8c8 inset;
   }
   canvas#game{
     display:block;
-    background:#4EC0CA;
+    background:#73C2CA;
     border-radius:14px;
     image-rendering: pixelated;
-    box-shadow: inset 0 0 0 2px #002035;
+    box-shadow: inset 0 0 0 2px #4a9fb0;
     /* Visual scale (native 288x512 rendered larger) */
     width:  min(92vmin, 460px);
     height: auto;
@@ -342,7 +342,7 @@
         <path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/>
       </svg>
       <span class="corner tl">AI · AGENT</span>
-      <span id="aiLabel">ACTIVATE AI AGENT</span>
+      <span id="aiLabel">🤖 AI Agent</span>
       <span class="corner br" id="aiStat">STANDBY</span>
     </button>
 
@@ -372,6 +372,7 @@ const STATE = {
   running:false, overlord:false, dying:false,
   score:0, flapCount:0,
   speed: 1,                       // 1× normal, 2× turbo
+  lastLevel: 1, levelUpAt: 0,     // level-progression tracking (display + flash)
 };
 
 const game     = document.getElementById('game');
@@ -386,129 +387,153 @@ const aiStat   = document.getElementById('aiStat');
 /* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
                 the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
 const COL = {
-  // sky
-  bgSky:'#7EC0CF', bgSkyEnd:'#9DD3DE',
+  // sky — canonical Flappy Bird light-blue gradient
+  bgSky:'#70C5CE', bgSkyEnd:'#A8DADC',
   // city silhouette  (pale grey-blue, sits low behind bushes)
   city:'rgba(168,196,205,.95)',
   // mid-ground bushes  (pale sage, similar to official mobile clone)
   bush:'rgba(150,196,108,.95)',
   // pipes
-  pipe:'#7CB342',          // bright body green  (G=179 > 140,  R=124 < 200, B=66 < 120)
-  pipeLip:'#5A8E29',       // darker cap green   (G=142 borderline; AI still picks up body)
-  pipeLipDk:'#3E6B1E',     // outline + step accent
-  pipeShine:'rgba(255,255,255,.18)',
-  // ground
-  grass:'#7CB342', grassDk:'#5A8E29',
-  dirt:'#DBC78A', dirtDk:'#BFA965',
+  pipe:'#73BF2E',          // vibrant body green — canonical Flappy Bird pipe
+  pipeLip:'#558B2F',       // darker cap green
+  pipeLipDk:'#33691E',     // outline + step accent
+  pipeShine:'rgba(255,255,255,.14)',
+  // ground — green grass + tan dirt, canonical mobile-clone palette
+  grass:'#8BC34A', grassDk:'#689F38',
+  dirt:'#DED895', dirtDk:'#C8C27A',
   // bird
   birdBody:'#F8D437', birdBelly:'#FFFFFF',
   birdWing:'#D89423', birdBeakT:'#F08421', birdBeakB:'#D86E10',
   birdTail:'#E2A03A',
 };
 
-/* ----------  HELPERS  ---------- */
-function pillRect(ctx,x,y,w,h){
-  ctx.beginPath();
-  ctx.moveTo(x-2,y); ctx.lineTo(x+w+2,y);
-  ctx.lineTo(x+w+2,y+h); ctx.lineTo(x-2,y+h);
-  ctx.closePath(); ctx.fill();
-}
-function roundRectPath(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.lineTo(x+w-r,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);
-  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);
-  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);
-  ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
-}
-
 /* ----------  SCENE  ---------- */
 function drawScene(){
-  const sky = gctx.createLinearGradient(0,0,0,GH-GROUND_H);
-  sky.addColorStop(0, COL.bgSky);
-  sky.addColorStop(1, COL.bgSkyEnd);
-  gctx.fillStyle = sky;
-  gctx.fillRect(0,0,GW,GH-GROUND_H);
+  const byGround = GH - GROUND_H;
+
+  // sky — flat cyan fill (canonical Flappy Bird)
+  gctx.fillStyle = COL.bgSky;
+  gctx.fillRect(0, 0, GW, byGround);
+
+  // pixel-art clouds (slow horizontal drift)
+  gctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 3; i++){
+    const cx = (i * 130 + (STATE.groundX * 0.08)) % (GW + 100) - 50;
+    const cy = 80 + i * 55;
+    gctx.fillRect(cx,      cy, 28, 10);
+    gctx.fillRect(cx + 8,  cy - 6, 18, 10);
+  }
 
   // distant city silhouette (slow parallax)
   gctx.fillStyle = COL.city;
-  for (let i=-1; i<10; i++){
-    const x = (i*42 + (STATE.groundX*0.2)) % (GW + 60);
-    const seed = (i*7 + 3) % 11;
-    const h1 = 20 + seed*3;
-    const w1 = 22 + seed*2;
-    pillRect(gctx, x, GH-GROUND_H-h1, w1, h1);
-    pillRect(gctx, x+6, GH-GROUND_H-h1-9, w1*0.5, 9);
+  for (let i = -1; i < 8; i++){
+    const bx = (i * 54 + (STATE.groundX * 0.15)) % (GW + 60) - 4;
+    const seed = (i * 11 + 5) % 19;
+    const bh  = 24 + seed;
+    const bw  = 32 + (seed % 10);
+    // terraced building (wider base, narrower upper)
+    gctx.fillRect(bx,       byGround - bh,      bw,     bh);
+    gctx.fillRect(bx - 4,   byGround - bh - 10, bw + 8, 12);
+    gctx.fillRect(bx + 2,   byGround - bh - 16, bw - 4, 8);
+    // lit windows
+    gctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let wy = byGround - bh + 6; wy < byGround - 10; wy += 14){
+      for (let wx = bx + 4; wx < bx + bw - 4; wx += 12){
+        gctx.fillRect(wx, wy, 4, 5);
+      }
+    }
+    gctx.fillStyle = COL.city;
   }
 
-  // mid-ground bushes (medium parallax)
+  // mid-ground bushes — smooth bezier humps, flat base
   gctx.fillStyle = COL.bush;
-  for (let i=-1; i<5; i++){
-    const x = (i*120 + (STATE.groundX*0.5)) % (GW + 120);
-    const by = GH-GROUND_H-4;
+  for (let i = -1; i < 5; i++){
+    const x = (i * 130 + (STATE.groundX * 0.45)) % (GW + 140) - 20;
+    const by = byGround;
     gctx.beginPath();
-    gctx.arc(x+18, by,  16, Math.PI, 0);
-    gctx.arc(x+34, by-6, 18, Math.PI, 0);
-    gctx.arc(x+54, by-2, 16, Math.PI, 0);
-    gctx.arc(x+78, by+2, 14, Math.PI, 0);
-    gctx.arc(x+96, by,  12, Math.PI, 0);
-    gctx.closePath(); gctx.fill();
+    gctx.moveTo(x, by);
+    // first hump
+    gctx.quadraticCurveTo(x + 20, by - 34, x + 48,  by - 10);
+    // second hump
+    gctx.quadraticCurveTo(x + 72, by - 28, x + 100, by - 6);
+    // third hump
+    gctx.quadraticCurveTo(x + 118, by - 18, x + 150, by);
+    gctx.closePath();
+    gctx.fill();
   }
 
   // pipes
   for (const p of STATE.pipes){
-    const by = p.gapY + p.gapH;
-    const bh = (GH - GROUND_H) - by;
-    drawPipe(gctx, p.x,  by, PIPE_W, bh, false);
-    drawPipe(gctx, p.x,  0,  PIPE_W, p.gapY, true);
+    const botY = p.gapY + p.gapH;
+    const botH = byGround - botY;
+    drawPipe(gctx, p.x, botY, PIPE_W, botH, false);
+    drawPipe(gctx, p.x, 0,     PIPE_W, p.gapY, true);
   }
 
-  // ground
+  // ground — chevron / diagonal stripe pattern
+  const gy = byGround;
   gctx.fillStyle = COL.grass;
-  gctx.fillRect(0, GH-GROUND_H, GW, 12);
+  gctx.fillRect(0, gy, GW, 12);
   gctx.fillStyle = COL.grassDk;
-  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H, 4, 12);
+  // scrolling triangular chevron pips (canonical grass texture)
+  for (let i = (STATE.groundX % 12) - 12; i < GW + 12; i += 6){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 2);
+    gctx.lineTo(i + 3, gy + 10);
+    gctx.lineTo(i - 3, gy + 10);
+    gctx.closePath();
+    gctx.fill();
+  }
+  // dirt strip
   gctx.fillStyle = COL.dirt;
-  gctx.fillRect(0, GH-GROUND_H+12, GW, GROUND_H-12);
+  gctx.fillRect(0, gy + 12, GW, GROUND_H - 12);
   gctx.fillStyle = COL.dirtDk;
-  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H+18, 14, 4);
+  for (let i = (STATE.groundX % 14) - 14; i < GW + 14; i += 7){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 16);
+    gctx.lineTo(i + 2, gy + 22);
+    gctx.lineTo(i - 2, gy + 22);
+    gctx.closePath();
+    gctx.fill();
+  }
 }
 
 /* ----------  PIPE  (flat darker-stripe cap at closed end, no overhang, like real Flappy Bird) ---------- */
 function drawPipe(ctx, x, y, w, h, isTop){
   const lipH = 22;
-  if (h < lipH) return;            // degenerate pipe: nothing sensible to draw
+  const over = 6;                  // cap overhangs body 6 px each side
+  if (h < lipH) return;
 
-  // BODY (lighter green) — fills the entire pipe span first
+  // The cap sits at the closed end — bottom for top pipe, top for bottom pipe.
+  const capY  = isTop ? y + h - lipH : y;
+  const bodyY = isTop ? y            : y + lipH;
+  const bodyH = h - lipH;
+  const capW  = w + over * 2;
+
+  // BODY (narrower than the cap)
   ctx.fillStyle = COL.pipe;
-  ctx.fillRect(x, y, w, h);
+  ctx.fillRect(x + over, bodyY, w, bodyH);
 
   // left-edge highlight on the body
   ctx.fillStyle = COL.pipeShine;
-  if (isTop) ctx.fillRect(x+1, y+lipH, 4, h-lipH);
-  else       ctx.fillRect(x+1, y,     4, h-lipH);
+  ctx.fillRect(x + over + 1, bodyY, 4, bodyH);
 
-  // DARKER LIP at the closed end of the pipe
-  const lipY = isTop ? y : y + h - lipH;
+  // OVERHANGING CAP
   ctx.fillStyle = COL.pipeLip;
-  ctx.fillRect(x, lipY, w, lipH);
+  ctx.fillRect(x, capY, capW, lipH);
 
-  // step / contrast line at the very closed edge
+  // cap top highlight
+  ctx.fillStyle = COL.pipeShine;
+  ctx.fillRect(x, capY, capW, 2);
+
+  // dark accent at the cap/body seam
   ctx.fillStyle = COL.pipeLipDk;
-  if (isTop) ctx.fillRect(x, y,                w, 2);
-  else       ctx.fillRect(x, y + h - 2,        w, 2);
+  if (isTop) ctx.fillRect(x, capY + lipH - 2, capW, 2);
+  else       ctx.fillRect(x, capY,              capW, 2);
 
-  // contrast line at the lip/body seam
-  ctx.fillRect(x, lipY + lipH - 2, w, 2);
-
-  // right-edge shadow band on the lip
+  // right-edge shadow band on the cap
   ctx.fillStyle = COL.pipeLipDk;
-  ctx.fillRect(x + w - 4, lipY + 2, 3, lipH - 4);
+  ctx.fillRect(x + capW - 4, capY + 2, 3, lipH - 4);
 }
 
 function drawBird(ctx, b, t){
@@ -517,44 +542,68 @@ function drawBird(ctx, b, t){
   const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
   ctx.rotate(tilt);
   const cycle  = ((t/80)|0) % 3;
-  const wingDY = cycle === 1 ? -8 : (cycle === 2 ? 5 : 0);
+  const PX = 3;   // pixel-block size
 
-  // tail tufts (behind body) — three dark-orange triangular spikes, symmetric
+  // Wing animation offset: up / rest / down
+  const wingDY = cycle === 1 ? -2*PX : (cycle === 2 ? PX : 0);
+
+  // ---- TAIL (5 dark-orange pixel blocks — three-spike fan behind body) ----
   ctx.fillStyle = COL.birdTail;
-  ctx.beginPath(); ctx.moveTo(-12, 1);   ctx.lineTo(-20, -1);  ctx.lineTo(-14, 4);    ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-11, -3);  ctx.lineTo(-17, -9);  ctx.lineTo(-12, -2);  ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-9,  -7);  ctx.lineTo(-14,-15);  ctx.lineTo(-9,  -8);  ctx.closePath(); ctx.fill();
+  ctx.fillRect(-5*PX, -1*PX, 2*PX, PX);          // top spike base
+  ctx.fillRect(-4*PX, -0*PX, PX, PX);           // top spike tip
+  ctx.fillRect(-5*PX,  1*PX, 2*PX, PX);          // middle spike
+  ctx.fillRect(-4*PX,  2*PX, PX, PX);           // bottom spike tip
+  ctx.fillRect(-4*PX,  3*PX, PX, PX);           // bottom spike base
 
-  // body (chunky round yellow)
+  // ---- BODY (chunky yellow oval — 7 rows of fillRect) ----
   ctx.fillStyle = COL.birdBody;
-  ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(-1*PX, -3*PX, 4*PX, PX);          // row -3: narrow top
+  ctx.fillRect(-2*PX, -2*PX, 7*PX, PX);          // row -2: widening
+  ctx.fillRect(-3*PX, -1*PX, 9*PX, PX);          // row -1: widest (eye level)
+  ctx.fillRect(-3*PX,  0*PX, 9*PX, PX);          // row  0: center
+  ctx.fillRect(-3*PX,  1*PX, 9*PX, PX);          // row  1: center
+  ctx.fillRect(-2*PX,  2*PX, 7*PX, PX);          // row  2: narrowing
+  ctx.fillRect(-1*PX,  3*PX, 4*PX, PX);          // row  3: bottom
 
-  // white belly
+  // ---- WHITE BELLY (lower-right of body) ----
   ctx.fillStyle = COL.birdBelly;
-  ctx.beginPath(); ctx.ellipse(3, 5, 10, 7, 0, -0.2, Math.PI+0.2); ctx.fill();
+  ctx.fillRect( 0*PX,  1*PX, 5*PX, PX);
+  ctx.fillRect( 1*PX,  2*PX, 4*PX, PX);
+  ctx.fillRect( 2*PX,  3*PX, 2*PX, PX);
 
-  // wing (tan teardrop, animates through up / rest / down)
+  // ---- WING (tan, 5×2 block, animates up ↔ rest ↔ down) ----
   ctx.fillStyle = COL.birdWing;
-  ctx.beginPath(); ctx.ellipse(-2, 3+wingDY, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(-2*PX, 0*PX + wingDY, 5*PX, 2*PX);
 
-  // eye (white sclera + black outline ring + black pupil + bright shine — matches canonical sprite)
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(7, -4, 3.8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.arc(8.4, -4, 1.7, 0, Math.PI*2); ctx.fill();
+  // ---- EYE (round white circle with thick black ring + pupil — canonical look) ----
+  const ex = 2.3*PX, ey = -0*PX;
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(9.0, -4.5, 0.6, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(ex, ey, 2.3*PX, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  // pupil
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(ex + 0.6*PX, ey, 0.8*PX, 0, Math.PI*2);
+  ctx.fill();
+  // pupil shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(ex + 0.8*PX, ey - 0.2*PX, 0.25*PX, 0, Math.PI*2);
+  ctx.fill();
 
-  // two-tone orange beak
+  // ---- BEAK (oversized two-tone orange rectangle) ----
+  // upper beak (lighter orange)
   ctx.fillStyle = COL.birdBeakT;
-  ctx.beginPath();
-  ctx.moveTo(11, -2); ctx.lineTo(22, 0); ctx.lineTo(20, 1); ctx.lineTo(11, 1);
-  ctx.closePath(); ctx.fill();
+  ctx.fillRect(5*PX, -1*PX, 5*PX, PX);
+  ctx.fillRect(6*PX,  0*PX, 4*PX, PX);
+  // lower beak (darker orange)
   ctx.fillStyle = COL.birdBeakB;
-  ctx.beginPath();
-  ctx.moveTo(11, 1); ctx.lineTo(20, 1); ctx.lineTo(11, 4);
-  ctx.closePath(); ctx.fill();
+  ctx.fillRect(5*PX,  1*PX, 4*PX, PX);
+  ctx.fillRect(5*PX,  2*PX, 3*PX, PX);
 
   ctx.restore();
 }
@@ -575,6 +624,12 @@ function makePipe(x){
 }
 function flap(){
   if (!STATE.running) return;
+  // Only fire the impulse when the bird is falling (vy >= 0).
+  // If already rising from a prior flap, let it coast so gravity
+  // can accumulate and produce a natural ballistic arc. Without
+  // this guard, every frame's flap() resets vy to -7.4, the bird
+  // climbs linearly, then coasts into the canvas ceiling.
+  if (STATE.bird.vy < 0) return;
   STATE.bird.vy = FLAP;
   STATE.flapCount++;
 }
@@ -610,6 +665,10 @@ function startGame(){
   document.getElementById('goTitle').textContent = 'READY';
   reset();
   STATE.running = true; STATE.dying = false;
+  // Reset the level-progression tracking so the bottom-right pill
+  // doesn't show a stale "LEVEL 9 · 0/200" after a restart.
+  STATE.lastLevel = 1;
+  STATE.levelUpAt = 0;
 }
 function step(){
   if (!STATE.running) return;
@@ -660,7 +719,16 @@ function setScore(n){
 function detect(){
   let nextPipe = null;
   for (const p of STATE.pipes){
-    if (!p.passed && p.x + PIPE_W > STATE.bird.x - 4){ nextPipe = p; break; }
+    // The geometric boundary is aligned with step()'s inX collision
+    // box. NO `!p.passed` guard here — that was the fatal race: the
+    // pipe gets scored at p.x < 28 but the bird's body overlaps it
+    // until p.x < 20. If we drop the pipe at p.x=28, the AI targets
+    // the next pipe while still inside the current one, fires a flap
+    // that clips the upper lip, and dies. Now we keep the pipe as
+    // long as the bird actually sits inside it.
+    if (p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r){
+      nextPipe = p; break;
+    }
   }
   const gapTop = nextPipe ? nextPipe.gapY      : 0;
   const gapBot = nextPipe ? nextPipe.gapY + nextPipe.gapH : 0;
@@ -678,22 +746,27 @@ function detect(){
 const NEUTRAL_POL = { action:false, jump:0, no:1, delta:0, thr:24, conf:0 };
 function policy(obs){
   if (!obs.pipe) return { ...NEUTRAL_POL };
-  const mid = (obs.gapTop + obs.gapBot) / 2;
-  // Lookahead factor 5 — tracks current vy, so a falling bird targets higher
-  // (flap up sooner) and a rising bird targets lower (don't spam flaps).
-  const look = -obs.birdVy * 5;
-  const target = mid + look;
-  const thr = 24;
-  const delta = obs.birdY - target;
-  // 4-px safety margin: agent flaps *before* crossing target, never after.
-  const action = delta > -4;
-  // hard cap on ceiling — if somehow we get too close to the top of canvas
-  // don't flap (gravity is already pulling us down).
-  if (obs.birdY < 16) return { action:false, jump:0, no:1, delta, thr, conf:1 };
-  const z = delta / Math.max(1, thr);
-  const pjump = 1/(1+Math.exp(-z*1.8));
-  const conf = Math.min(1, (obs.confB||0)*(obs.confP||0) + (1-(obs.confP||0))*0.6);
-  return { action, jump:pjump, no:1-pjump, delta, thr, conf };
+  const birdR  = STATE.bird.r;
+  const gapTop = obs.gapTop;
+  const gapBot = obs.gapBot;
+  const mid    = (gapTop + gapBot) / 2;
+  // Post-flap rise in this physics (FLAP=-7.4, GRAV=0.45) is ~64 px:
+  //   rise = -FLAP*FLAP / (2*GRAV) - FLAP ~= (7.4*16.44) + 0.45*16.44*15.44/2 ~= 64 px
+  // If we aim at `mid`, the peak lands ~64 px above mid (= mid - 64).
+  // gap_top = mid - 70, so peak = mid - 64 collides with the upper pipe
+  // (peak's birdTop = mid - 76 < gapTop + 4 = mid - 66). Always dies.
+  //
+  // Fix: aim the controller at `mid + 24`. Flap occurs when birdY > mid+22,
+  // peak lands at mid + 22 - 64 = mid - 42 → top clear by 28 px → safe.
+  const target = mid + 24;
+  const delta  = obs.birdY - target;
+  let action   = delta > -2;          // 2-px preemptive
+  // Ceiling guards — never flap if we're about to punch into the upper pipe
+  // or the canvas top.
+  if (obs.birdY - birdR < gapTop + 6) action = false;
+  if (obs.birdY < 14)                 action = false;
+  const conf = 1;
+  return { action, jump:action?1:0, no:action?0:1, delta, thr:24, conf };
 }
 
 /* ------------------------------------------------------------
@@ -708,18 +781,27 @@ function policy(obs){
    ------------------------------------------------------------ */
 function safetyFlapIfNeeded(obs){
   if (!obs.pipe) return;
-  const birdR = 12;
-  const safety = 8;
-  // currently within the pipe's x extent
-  if (STATE.bird.x + birdR <= obs.pipe.x)              return;
-  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)     return;
-  // approaching lower pipe (bird is high above gap bottom but inside gap zone)
-  if (STATE.bird.y + birdR > obs.gapBot - safety){
+  const birdR  = STATE.bird.r;
+  const lowSafe = 6;
+  const upSafe  = 6;
+  // Stays narrow: only act when the bird's body actually overlaps the pipe.
+  if (STATE.bird.x + birdR <= obs.pipe.x)             return;  // entirely left of pipe
+  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)    return;  // entirely right of pipe
+
+  // LOWER-pipe emergency: flap if we're about to smash into the bottom pipe.
+  if (STATE.bird.y + birdR > obs.gapBot - lowSafe){
     STATE.bird.vy = FLAP;
     STATE.flapCount++;
+    return;
   }
-  // ceiling guard
-  if (STATE.bird.y - birdR < 8){
+  // UPPER-pipe emergency: damp any upward velocity so the bird stops
+  // rising before its top edge clips the upper pipe.
+  if (STATE.bird.y - birdR < obs.gapTop + upSafe){
+    STATE.bird.vy = Math.max(STATE.bird.vy, 0);
+    return;
+  }
+  // Canvas-top guard (only if there's no relevant pipe above us).
+  if (!obs.pipe && STATE.bird.y - birdR < 8){
     STATE.bird.vy = Math.max(STATE.bird.vy, 0);
   }
 }
@@ -752,7 +834,7 @@ function drawOverlay(obs, pol, t){
   if (obs.pipe){
     const x = obs.pipe.x - 2;
     const y = obs.gapTop;
-    const w = PIPE_W + 4;
+    const w = PIPE_W + 12;  // matches the visual cap width (6 px overhang each side)
     const h = Math.max(20, obs.gapBot - obs.gapTop);
     glowRect(octx, x, y, w, h, '#00e6ff', 3);
     cornerTicks(octx, x, y, w, h, '#00e6ff', 8, 2);
@@ -852,6 +934,44 @@ function drawOverlay(obs, pol, t){
   octx.fillStyle = STATE.overlord ? '#00ff88' : '#dff5ff';
   octx.fillText(statTxt, 14, pillY + 2);
   octx.restore();
+
+  // ---- SUBTLE bottom-right LEVEL pill (pipes cleared → level)  -----------------
+  octx.save();
+  octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+  octx.textAlign = 'right'; octx.textBaseline = 'top';
+  const lvlTxt = 'LEVEL ' + STATE.lastLevel + ' · ' + STATE.score + '/200';
+  const lw = octx.measureText(lvlTxt).width + 14;
+  octx.fillStyle = 'rgba(0,0,0,.45)';
+  octx.fillRect(GW - lw - 8, pillY, lw, 14);
+  octx.strokeStyle = 'rgba(255,200,0,.75)';
+  octx.lineWidth = 1; octx.strokeRect(GW - lw - 8 + .5, pillY + .5, lw - 1, 13);
+  octx.fillStyle = '#ffd000';
+  octx.fillText(lvlTxt, GW - 14, pillY + 2);
+  octx.restore();
+
+  // ---- LEVEL-UP FLASH  (0.9s solid, 0.4s fade)  ---------------------------------
+  if (STATE.lastLevel > 1 && performance.now() - STATE.levelUpAt < 1300){
+    const elapsed = performance.now() - STATE.levelUpAt;
+    const opacity = elapsed < 900 ? 1 : Math.max(0, (1300 - elapsed) / 400);
+    octx.save();
+    octx.globalAlpha = opacity;
+    // Anchored top-center, well above the FLAP badge band (which sits
+    // beneath the bird at birdY+18) so a level-up never collides with it.
+    octx.translate(GW/2, GH/2 - 150);
+    octx.font = 'bold 38px ui-monospace, Menlo, monospace';
+    octx.textAlign = 'center'; octx.textBaseline = 'middle';
+    octx.shadowColor = '#ffd000'; octx.shadowBlur = 26;
+    octx.fillStyle = '#ffd000';
+    octx.fillText('LEVEL ' + STATE.lastLevel, 0, 0);
+    octx.shadowBlur = 0;
+    octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+    octx.fillStyle = '#ffffff';
+    // Subline sits ABOVE the LEVEL text so it never visually masks
+    // the bird, which is typically at y≈130–150 immediately after
+    // a level boundary cross.
+    octx.fillText('UNBEATABLE AGENT', 0, -32);
+    octx.restore();
+  }
 }
 
 function glowRect(ctx,x,y,w,h,color,th){
@@ -922,12 +1042,17 @@ function dieDropStep(){
 let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, confB:0, confP:0, pipe:null };
 let pol = { ...NEUTRAL_POL };
 
+// ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
+// lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
+function currentLevel(score){ return Math.floor(score / 25) + 1; }
+function currentLevel(score){ return Math.floor(score / 25) + 1; }
+
 /* ----------  INPUTS + AI BUTTON  ---------- */
 function setAi(on){
   STATE.overlord = !!on;
   aiBtn.classList.toggle('off', !on);
   aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  aiLabel.textContent = on ? 'AI · ENGAGED' : 'ACTIVATE AI AGENT';
+  aiLabel.textContent = on ? '🤖 A.I. Engaged' : '🤖 AI Agent';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   if (on && !STATE.running) startGame();
   aiBtn.classList.remove('firing'); void aiBtn.offsetWidth;
@@ -1020,6 +1145,12 @@ function frame(t){
       }
       step();
     }
+  }
+  // ----- LEVEL progression check -----
+  const lvl = currentLevel(STATE.score);
+  if (lvl > STATE.lastLevel){
+    STATE.lastLevel = lvl;
+    if (lvl > 1) STATE.levelUpAt = performance.now();   // level #1 is boot, don't flash
   }
   drawScene();
   drawBird(gctx, STATE.bird, t);
