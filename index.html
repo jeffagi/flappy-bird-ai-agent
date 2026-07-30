@@ -41,17 +41,17 @@
     position:relative;
     padding:6px;
     border-radius:18px;
-    background: linear-gradient(180deg, #002035, #06253a);
+    background: linear-gradient(180deg, #87CEEB, #4EC0CA);
     box-shadow:
-      0 30px 80px rgba(0,30,55,.45),
-      0 0 0 1px #002035 inset;
+      0 30px 80px rgba(0,60,100,.35),
+      0 0 0 2px #5ba8c8 inset;
   }
   canvas#game{
     display:block;
-    background:#4EC0CA;
+    background:#73C2CA;
     border-radius:14px;
     image-rendering: pixelated;
-    box-shadow: inset 0 0 0 2px #002035;
+    box-shadow: inset 0 0 0 2px #4a9fb0;
     /* Visual scale (native 288x512 rendered larger) */
     width:  min(92vmin, 460px);
     height: auto;
@@ -387,20 +387,20 @@ const aiStat   = document.getElementById('aiStat');
 /* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
                 the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
 const COL = {
-  // sky
-  bgSky:'#7EC0CF', bgSkyEnd:'#9DD3DE',
+  // sky — canonical Flappy Bird light-blue gradient
+  bgSky:'#70C5CE', bgSkyEnd:'#A8DADC',
   // city silhouette  (pale grey-blue, sits low behind bushes)
   city:'rgba(168,196,205,.95)',
   // mid-ground bushes  (pale sage, similar to official mobile clone)
   bush:'rgba(150,196,108,.95)',
   // pipes
-  pipe:'#7CB342',          // bright body green  (G=179 > 140,  R=124 < 200, B=66 < 120)
-  pipeLip:'#5A8E29',       // darker cap green   (G=142 borderline; AI still picks up body)
-  pipeLipDk:'#3E6B1E',     // outline + step accent
-  pipeShine:'rgba(255,255,255,.18)',
-  // ground
-  grass:'#7CB342', grassDk:'#5A8E29',
-  dirt:'#DBC78A', dirtDk:'#BFA965',
+  pipe:'#73BF2E',          // vibrant body green — canonical Flappy Bird pipe
+  pipeLip:'#558B2F',       // darker cap green
+  pipeLipDk:'#33691E',     // outline + step accent
+  pipeShine:'rgba(255,255,255,.14)',
+  // ground — green grass + tan dirt, canonical mobile-clone palette
+  grass:'#8BC34A', grassDk:'#689F38',
+  dirt:'#DED895', dirtDk:'#C8C27A',
   // bird
   birdBody:'#F8D437', birdBelly:'#FFFFFF',
   birdWing:'#D89423', birdBeakT:'#F08421', birdBeakB:'#D86E10',
