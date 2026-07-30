@@ -407,109 +407,133 @@ const COL = {
   birdTail:'#E2A03A',
 };
 
-/* ----------  HELPERS  ---------- */
-function pillRect(ctx,x,y,w,h){
-  ctx.beginPath();
-  ctx.moveTo(x-2,y); ctx.lineTo(x+w+2,y);
-  ctx.lineTo(x+w+2,y+h); ctx.lineTo(x-2,y+h);
-  ctx.closePath(); ctx.fill();
-}
-function roundRectPath(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.lineTo(x+w-r,y);
-  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);
-  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);
-  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);
-  ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
-}
-
 /* ----------  SCENE  ---------- */
 function drawScene(){
-  const sky = gctx.createLinearGradient(0,0,0,GH-GROUND_H);
-  sky.addColorStop(0, COL.bgSky);
-  sky.addColorStop(1, COL.bgSkyEnd);
-  gctx.fillStyle = sky;
-  gctx.fillRect(0,0,GW,GH-GROUND_H);
+  const byGround = GH - GROUND_H;
+
+  // sky — flat cyan fill (canonical Flappy Bird)
+  gctx.fillStyle = COL.bgSky;
+  gctx.fillRect(0, 0, GW, byGround);
+
+  // pixel-art clouds (slow horizontal drift)
+  gctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 3; i++){
+    const cx = (i * 130 + (STATE.groundX * 0.08)) % (GW + 100) - 50;
+    const cy = 80 + i * 55;
+    gctx.fillRect(cx,      cy, 28, 10);
+    gctx.fillRect(cx + 8,  cy - 6, 18, 10);
+  }
 
   // distant city silhouette (slow parallax)
   gctx.fillStyle = COL.city;
-  for (let i=-1; i<10; i++){
-    const x = (i*42 + (STATE.groundX*0.2)) % (GW + 60);
-    const seed = (i*7 + 3) % 11;
-    const h1 = 20 + seed*3;
-    const w1 = 22 + seed*2;
-    pillRect(gctx, x, GH-GROUND_H-h1, w1, h1);
-    pillRect(gctx, x+6, GH-GROUND_H-h1-9, w1*0.5, 9);
+  for (let i = -1; i < 8; i++){
+    const bx = (i * 54 + (STATE.groundX * 0.15)) % (GW + 60) - 4;
+    const seed = (i * 11 + 5) % 19;
+    const bh  = 24 + seed;
+    const bw  = 32 + (seed % 10);
+    // terraced building (wider base, narrower upper)
+    gctx.fillRect(bx,       byGround - bh,      bw,     bh);
+    gctx.fillRect(bx - 4,   byGround - bh - 10, bw + 8, 12);
+    gctx.fillRect(bx + 2,   byGround - bh - 16, bw - 4, 8);
+    // lit windows
+    gctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let wy = byGround - bh + 6; wy < byGround - 10; wy += 14){
+      for (let wx = bx + 4; wx < bx + bw - 4; wx += 12){
+        gctx.fillRect(wx, wy, 4, 5);
+      }
+    }
+    gctx.fillStyle = COL.city;
   }
 
-  // mid-ground bushes (medium parallax)
+  // mid-ground bushes — smooth bezier humps, flat base
   gctx.fillStyle = COL.bush;
-  for (let i=-1; i<5; i++){
-    const x = (i*120 + (STATE.groundX*0.5)) % (GW + 120);
-    const by = GH-GROUND_H-4;
+  for (let i = -1; i < 5; i++){
+    const x = (i * 130 + (STATE.groundX * 0.45)) % (GW + 140) - 20;
+    const by = byGround;
     gctx.beginPath();
-    gctx.arc(x+18, by,  16, Math.PI, 0);
-    gctx.arc(x+34, by-6, 18, Math.PI, 0);
-    gctx.arc(x+54, by-2, 16, Math.PI, 0);
-    gctx.arc(x+78, by+2, 14, Math.PI, 0);
-    gctx.arc(x+96, by,  12, Math.PI, 0);
-    gctx.closePath(); gctx.fill();
+    gctx.moveTo(x, by);
+    // first hump
+    gctx.quadraticCurveTo(x + 20, by - 34, x + 48,  by - 10);
+    // second hump
+    gctx.quadraticCurveTo(x + 72, by - 28, x + 100, by - 6);
+    // third hump
+    gctx.quadraticCurveTo(x + 118, by - 18, x + 150, by);
+    gctx.closePath();
+    gctx.fill();
   }
 
   // pipes
   for (const p of STATE.pipes){
-    const by = p.gapY + p.gapH;
-    const bh = (GH - GROUND_H) - by;
-    drawPipe(gctx, p.x,  by, PIPE_W, bh, false);
-    drawPipe(gctx, p.x,  0,  PIPE_W, p.gapY, true);
+    const botY = p.gapY + p.gapH;
+    const botH = byGround - botY;
+    drawPipe(gctx, p.x, botY, PIPE_W, botH, false);
+    drawPipe(gctx, p.x, 0,     PIPE_W, p.gapY, true);
   }
 
-  // ground
+  // ground — chevron / diagonal stripe pattern
+  const gy = byGround;
   gctx.fillStyle = COL.grass;
-  gctx.fillRect(0, GH-GROUND_H, GW, 12);
+  gctx.fillRect(0, gy, GW, 12);
   gctx.fillStyle = COL.grassDk;
-  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H, 4, 12);
+  // scrolling triangular chevron pips (canonical grass texture)
+  for (let i = (STATE.groundX % 12) - 12; i < GW + 12; i += 6){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 2);
+    gctx.lineTo(i + 3, gy + 10);
+    gctx.lineTo(i - 3, gy + 10);
+    gctx.closePath();
+    gctx.fill();
+  }
+  // dirt strip
   gctx.fillStyle = COL.dirt;
-  gctx.fillRect(0, GH-GROUND_H+12, GW, GROUND_H-12);
+  gctx.fillRect(0, gy + 12, GW, GROUND_H - 12);
   gctx.fillStyle = COL.dirtDk;
-  for (let i=(STATE.groundX%24); i<GW; i+=24) gctx.fillRect(i, GH-GROUND_H+18, 14, 4);
+  for (let i = (STATE.groundX % 14) - 14; i < GW + 14; i += 7){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 16);
+    gctx.lineTo(i + 2, gy + 22);
+    gctx.lineTo(i - 2, gy + 22);
+    gctx.closePath();
+    gctx.fill();
+  }
 }
 
 /* ----------  PIPE  (flat darker-stripe cap at closed end, no overhang, like real Flappy Bird) ---------- */
 function drawPipe(ctx, x, y, w, h, isTop){
   const lipH = 22;
-  if (h < lipH) return;            // degenerate pipe: nothing sensible to draw
+  const over = 6;                  // cap overhangs body 6 px each side
+  if (h < lipH) return;
 
-  // BODY (lighter green) — fills the entire pipe span first
+  // The cap sits at the closed end — bottom for top pipe, top for bottom pipe.
+  const capY  = isTop ? y + h - lipH : y;
+  const bodyY = isTop ? y            : y + lipH;
+  const bodyH = h - lipH;
+  const capW  = w + over * 2;
+
+  // BODY (narrower than the cap)
   ctx.fillStyle = COL.pipe;
-  ctx.fillRect(x, y, w, h);
+  ctx.fillRect(x + over, bodyY, w, bodyH);
 
   // left-edge highlight on the body
   ctx.fillStyle = COL.pipeShine;
-  if (isTop) ctx.fillRect(x+1, y+lipH, 4, h-lipH);
-  else       ctx.fillRect(x+1, y,     4, h-lipH);
+  ctx.fillRect(x + over + 1, bodyY, 4, bodyH);
 
-  // DARKER LIP at the closed end of the pipe
-  const lipY = isTop ? y : y + h - lipH;
+  // OVERHANGING CAP
   ctx.fillStyle = COL.pipeLip;
-  ctx.fillRect(x, lipY, w, lipH);
+  ctx.fillRect(x, capY, capW, lipH);
 
-  // step / contrast line at the very closed edge
+  // cap top highlight
+  ctx.fillStyle = COL.pipeShine;
+  ctx.fillRect(x, capY, capW, 2);
+
+  // dark accent at the cap/body seam
   ctx.fillStyle = COL.pipeLipDk;
-  if (isTop) ctx.fillRect(x, y,                w, 2);
-  else       ctx.fillRect(x, y + h - 2,        w, 2);
+  if (isTop) ctx.fillRect(x, capY + lipH - 2, capW, 2);
+  else       ctx.fillRect(x, capY,              capW, 2);
 
-  // contrast line at the lip/body seam
-  ctx.fillRect(x, lipY + lipH - 2, w, 2);
-
-  // right-edge shadow band on the lip
+  // right-edge shadow band on the cap
   ctx.fillStyle = COL.pipeLipDk;
-  ctx.fillRect(x + w - 4, lipY + 2, 3, lipH - 4);
+  ctx.fillRect(x + capW - 4, capY + 2, 3, lipH - 4);
 }
 
 function drawBird(ctx, b, t){
@@ -780,7 +804,7 @@ function drawOverlay(obs, pol, t){
   if (obs.pipe){
     const x = obs.pipe.x - 2;
     const y = obs.gapTop;
-    const w = PIPE_W + 4;
+    const w = PIPE_W + 12;  // matches the visual cap width (6 px overhang each side)
     const h = Math.max(20, obs.gapBot - obs.gapTop);
     glowRect(octx, x, y, w, h, '#00e6ff', 3);
     cornerTicks(octx, x, y, w, h, '#00e6ff', 8, 2);
