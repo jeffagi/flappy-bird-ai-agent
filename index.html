@@ -542,44 +542,68 @@ function drawBird(ctx, b, t){
   const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
   ctx.rotate(tilt);
   const cycle  = ((t/80)|0) % 3;
-  const wingDY = cycle === 1 ? -8 : (cycle === 2 ? 5 : 0);
+  const PX = 3;   // pixel-block size
 
-  // tail tufts (behind body) — three dark-orange triangular spikes, symmetric
+  // Wing animation offset: up / rest / down
+  const wingDY = cycle === 1 ? -2*PX : (cycle === 2 ? PX : 0);
+
+  // ---- TAIL (5 dark-orange pixel blocks — three-spike fan behind body) ----
   ctx.fillStyle = COL.birdTail;
-  ctx.beginPath(); ctx.moveTo(-12, 1);   ctx.lineTo(-20, -1);  ctx.lineTo(-14, 4);    ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-11, -3);  ctx.lineTo(-17, -9);  ctx.lineTo(-12, -2);  ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-9,  -7);  ctx.lineTo(-14,-15);  ctx.lineTo(-9,  -8);  ctx.closePath(); ctx.fill();
+  ctx.fillRect(-5*PX, -1*PX, 2*PX, PX);          // top spike base
+  ctx.fillRect(-4*PX, -0*PX, PX, PX);           // top spike tip
+  ctx.fillRect(-5*PX,  1*PX, 2*PX, PX);          // middle spike
+  ctx.fillRect(-4*PX,  2*PX, PX, PX);           // bottom spike tip
+  ctx.fillRect(-4*PX,  3*PX, PX, PX);           // bottom spike base
 
-  // body (chunky round yellow)
+  // ---- BODY (chunky yellow oval — 7 rows of fillRect) ----
   ctx.fillStyle = COL.birdBody;
-  ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(-1*PX, -3*PX, 4*PX, PX);          // row -3: narrow top
+  ctx.fillRect(-2*PX, -2*PX, 7*PX, PX);          // row -2: widening
+  ctx.fillRect(-3*PX, -1*PX, 9*PX, PX);          // row -1: widest (eye level)
+  ctx.fillRect(-3*PX,  0*PX, 9*PX, PX);          // row  0: center
+  ctx.fillRect(-3*PX,  1*PX, 9*PX, PX);          // row  1: center
+  ctx.fillRect(-2*PX,  2*PX, 7*PX, PX);          // row  2: narrowing
+  ctx.fillRect(-1*PX,  3*PX, 4*PX, PX);          // row  3: bottom
 
-  // white belly
+  // ---- WHITE BELLY (lower-right of body) ----
   ctx.fillStyle = COL.birdBelly;
-  ctx.beginPath(); ctx.ellipse(3, 5, 10, 7, 0, -0.2, Math.PI+0.2); ctx.fill();
+  ctx.fillRect( 0*PX,  1*PX, 5*PX, PX);
+  ctx.fillRect( 1*PX,  2*PX, 4*PX, PX);
+  ctx.fillRect( 2*PX,  3*PX, 2*PX, PX);
 
-  // wing (tan teardrop, animates through up / rest / down)
+  // ---- WING (tan, 5×2 block, animates up ↔ rest ↔ down) ----
   ctx.fillStyle = COL.birdWing;
-  ctx.beginPath(); ctx.ellipse(-2, 3+wingDY, 9, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillRect(-2*PX, 0*PX + wingDY, 5*PX, 2*PX);
 
-  // eye (white sclera + black outline ring + black pupil + bright shine — matches canonical sprite)
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(7, -4, 3.8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#000';
-  ctx.beginPath(); ctx.arc(8.4, -4, 1.7, 0, Math.PI*2); ctx.fill();
+  // ---- EYE (round white circle with thick black ring + pupil — canonical look) ----
+  const ex = 2.3*PX, ey = -0*PX;
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(9.0, -4.5, 0.6, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(ex, ey, 2.3*PX, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  // pupil
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(ex + 0.6*PX, ey, 0.8*PX, 0, Math.PI*2);
+  ctx.fill();
+  // pupil shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(ex + 0.8*PX, ey - 0.2*PX, 0.25*PX, 0, Math.PI*2);
+  ctx.fill();
 
-  // two-tone orange beak
+  // ---- BEAK (oversized two-tone orange rectangle) ----
+  // upper beak (lighter orange)
   ctx.fillStyle = COL.birdBeakT;
-  ctx.beginPath();
-  ctx.moveTo(11, -2); ctx.lineTo(22, 0); ctx.lineTo(20, 1); ctx.lineTo(11, 1);
-  ctx.closePath(); ctx.fill();
+  ctx.fillRect(5*PX, -1*PX, 5*PX, PX);
+  ctx.fillRect(6*PX,  0*PX, 4*PX, PX);
+  // lower beak (darker orange)
   ctx.fillStyle = COL.birdBeakB;
-  ctx.beginPath();
-  ctx.moveTo(11, 1); ctx.lineTo(20, 1); ctx.lineTo(11, 4);
-  ctx.closePath(); ctx.fill();
+  ctx.fillRect(5*PX,  1*PX, 4*PX, PX);
+  ctx.fillRect(5*PX,  2*PX, 3*PX, PX);
 
   ctx.restore();
 }
