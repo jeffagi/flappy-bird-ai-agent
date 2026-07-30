@@ -125,8 +125,6 @@
       0 0 0 4px #355c80 inset,
       0 20px 50px rgba(10,25,41,.18);
   }
-  #ai-btn.firing{ animation: fire .4s ease-out; }
-
   /* ----------  2× SPEED BUTTON  (smaller, amber turbo) -------------- */
   .speed-btn{
     margin-top:-8px;
@@ -160,11 +158,6 @@
   }
   .speed-btn .corner.tl{ top:8px;  left:14px; }
   .speed-btn .corner.br{ bottom:8px; right:14px; }
-  @keyframes fire{
-    0%{   box-shadow:0 0 0 4px #003b22 inset, 0 0 80px rgba(0,255,136,.9), 0 0 160px rgba(0,255,136,.7); }
-    100%{ box-shadow:0 0 0 4px #003b22 inset, 0 20px 50px rgba(0,255,136,.45), 0 0 80px rgba(0,255,136,.5); }
-  }
-
   /* Tiny status text under the button */
   #status{
     color:#0a1929;
@@ -738,8 +731,6 @@ function detect(){
     birdVy: STATE.bird.vy,
     gapTop, gapBot,
     pipe:   nextPipe,
-    confB:  1,
-    confP:  nextPipe ? 1 : 0,
   };
 }
 
@@ -814,15 +805,10 @@ function drawOverlay(obs, pol, t){
   clearOverlay();
 
   // ---- BIRD detection box (lime) -------------------------------------------------
-  if (obs.confB > 0.05){
+  {
     const x = obs.birdX - 16, y = obs.birdY - 16, w = 32, h = 32;
     glowRect(octx, x, y, w, h, '#00ff88', 3);
     cornerTicks(octx, x, y, w, h, '#00ff88', 8, 2);
-    // SUBTLE metrics stacked ABOVE the box with comfortable spacing so the conf tag
-    // doesn't collide with the corner ticks at the box top.  Each miniTag is ~22 px tall,
-    // so we offset the second one by −26 so they sit cleanly.
-    miniTag(octx, x,         y - 50, 'FLAPS', String(STATE.flapCount), '#bdf6ff');
-    miniTag(octx, x,         y - 26, 'conf',  obs.confB.toFixed(2),    '#00ff88');
   }
 
   // ---- PIPE GAP detection box (cyan) ---------------------------------------------
@@ -1022,12 +1008,11 @@ function dieDropStep(){
 }
 
 /* ----------  AI / OVERLAY STATE  ---------- */
-let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, confB:0, confP:0, pipe:null };
+let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, pipe:null };
 let pol = { ...NEUTRAL_POL };
 
 // ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
 // lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
-function currentLevel(score){ return Math.floor(score / 25) + 1; }
 
 /* ----------  INPUTS + AI BUTTON  ---------- */
 function setAi(on){
@@ -1037,8 +1022,6 @@ function setAi(on){
   aiLabel.textContent = on ? '🤖 A.I. Engaged' : '🤖 AI Agent';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   if (on && !STATE.running) startGame();
-  aiBtn.classList.remove('firing'); void aiBtn.offsetWidth;
-  if (on) aiBtn.classList.add('firing');
 }
 aiBtn.addEventListener('click', () => setAi(!STATE.overlord));
 
@@ -1047,7 +1030,7 @@ const speedBtn   = document.getElementById('speed-btn');
 const speedLabel = document.getElementById('speedLabel');
 const speedStat  = document.getElementById('speedStat');
 function setSpeed(mul){
-  STATE.speed = Math.max(1, Math.min(4, mul|0));
+  STATE.speed = Math.max(1, mul|0);
   const on = STATE.speed > 1;
   speedBtn.classList.toggle('active', on);
   speedBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -1066,10 +1049,6 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF')    setAi(!STATE.overlord);
   if (e.code === 'KeyR')    startGame();
   if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(STATE.speed === 1 ? 2 : 1);
-  if (e.code === 'KeyB'){
-    // benchmark reset: clears the persisted BEST score
-    try { localStorage.removeItem(BEST_KEY); document.getElementById('goBest').textContent = '000'; } catch {}
-  }
 });
 
 // restart-on-click anywhere on game area
@@ -1118,7 +1097,6 @@ function frame(t){
           obs.pipe   = np;
           obs.gapTop = np.gapY;
           obs.gapBot = np.gapY + np.gapH;
-          obs.confP  = 1;
           pol = policy(obs);
         } else { pol = { ...NEUTRAL_POL }; }
       }
@@ -1126,7 +1104,7 @@ function frame(t){
     }
   }
   // ----- LEVEL progression check -----
-  const lvl = currentLevel(STATE.score);
+  const lvl = Math.floor(STATE.score / 25) + 1;
   if (lvl > STATE.lastLevel){
     STATE.lastLevel = lvl;
     if (lvl > 1) STATE.levelUpAt = performance.now();   // level #1 is boot, don't flash
