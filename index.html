@@ -600,6 +600,12 @@ function makePipe(x){
 }
 function flap(){
   if (!STATE.running) return;
+  // Only fire the impulse when the bird is falling (vy >= 0).
+  // If already rising from a prior flap, let it coast so gravity
+  // can accumulate and produce a natural ballistic arc. Without
+  // this guard, every frame's flap() resets vy to -7.4, the bird
+  // climbs linearly, then coasts into the canvas ceiling.
+  if (STATE.bird.vy < 0) return;
   STATE.bird.vy = FLAP;
   STATE.flapCount++;
 }
