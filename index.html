@@ -211,12 +211,28 @@
   .telemetry-cell .value.pink{ color:#ff79e7; }
   .control-label{ margin:0 0 8px; color:#85b8c1; font-size:9px; font-weight:900; letter-spacing:.2em; }
   #ai-btn{
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:auto;
+    touch-action:manipulation;
+    cursor:pointer;
     width:100%; height:64px; margin:0; border-radius:4px; font-size:19px; letter-spacing:.13em;
     background:linear-gradient(180deg, #b5ffbe 0%, #46d879 100%); box-shadow:0 4px 0 #197845, 0 0 25px rgba(69,233,126,.16), inset 0 0 0 2px #d8ffe0;
   }
   #ai-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 0 #197845, 0 0 32px rgba(69,233,126,.28), inset 0 0 0 2px #d8ffe0; }
   #ai-btn.off{ background:linear-gradient(180deg, #f3ffff 0%, #9fc6ca 100%); box-shadow:0 4px 0 #2c6470, inset 0 0 0 2px #fff; }
-  #ai-btn .coin{ width:27px; height:27px; left:15px; }
+  #ai-btn .coin{
+    position:absolute;
+    left:15px;
+    top:50%;
+    width:27px;
+    height:27px;
+    transform:translateY(-50%);
+    pointer-events:none;
+  }
   #ai-btn .corner.tl{ top:7px; left:54px; font-size:8px; }
   #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
   @media (max-width:800px){
@@ -375,12 +391,18 @@
   #ai-btn .corner.tl{ top:12px; left:102px; font-size:15px; color:#385469; }
   #ai-btn .corner.br{ bottom:13px; right:29px; font-size:15px; color:#385469; }
   .control-row{
+    position:relative;
+    z-index:3;
     display:grid;
     grid-template-columns:repeat(3, 1fr);
     gap:12px;
     margin-top:20px;
   }
   .speed-btn{
+    position:relative;
+    z-index:1;
+    pointer-events:auto;
+    touch-action:manipulation;
     width:100%;
     height:90px;
     border:3px solid #ffe9b1;
@@ -504,9 +526,24 @@
   .score-cell .value{ font-size:30px; color:#fff; }
   .control-label{ margin:0 0 10px; font-size:10px; letter-spacing:.16em; }
   #ai-btn{ height:62px; border-width:2px; border-radius:6px; font-size:18px; letter-spacing:.08em; }
+  #ai-btn .button-label{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    pointer-events:none;
+    user-select:none;
+  }
+  #ai-btn .corner.br{
+    position:absolute;
+    right:14px;
+    bottom:7px;
+    pointer-events:none;
+    user-select:none;
+  }
   #ai-btn .coin{ width:24px; height:24px; left:15px; }
   #ai-btn .corner.tl{ top:7px; left:52px; font-size:8px; }
-  #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
+  #ai-btn .corner.br{ right:14px; bottom:7px; font-size:8px; }
   .control-row{ grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
   .speed-btn{ height:48px; border-radius:6px; font-size:16px; border-width:2px; }
   @media (min-width:801px){
@@ -618,14 +655,14 @@
           <div class="telemetry-cell"><span class="label">VERTICAL V</span><span class="value" id="readoutVelocity">0.00</span></div>
         </div>
         <p class="control-label">PRIMARY CONTROL</p>
-        <button id="ai-btn" aria-label="AI AGENT" aria-pressed="false">
+        <button id="ai-btn" type="button" aria-label="🤖 AI AGENT" aria-pressed="false">
           <svg class="coin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/></svg>
-          <span class="corner tl">AI · AGENT</span><span id="aiLabel">AI AGENT</span><span class="corner br" id="aiStat">STANDBY</span>
+          <span class="button-label" id="aiLabel">🤖 AI AGENT</span><span class="corner br" id="aiStat">STANDBY</span>
         </button>
         <div class="control-row" role="group" aria-label="Game speed">
-          <button class="speed-btn active" data-speed="1" aria-pressed="true" title="Set speed to 1×">1×</button>
-          <button class="speed-btn" data-speed="2" aria-pressed="false" title="Set speed to 2×">2×</button>
-          <button class="speed-btn" data-speed="3" aria-pressed="false" title="Set speed to 3×">3×</button>
+          <button class="speed-btn active" type="button" data-speed="1" aria-pressed="true" title="Set speed to 1×">1×</button>
+          <button class="speed-btn" type="button" data-speed="2" aria-pressed="false" title="Set speed to 2×">2×</button>
+          <button class="speed-btn" type="button" data-speed="3" aria-pressed="false" title="Set speed to 3×">3×</button>
         </div>
       </aside>
     </main>
@@ -1222,12 +1259,15 @@ function setAi(on){
   STATE.overlord = !!on;
   aiBtn.classList.toggle('off', !on);
   aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  aiLabel.textContent = 'AI AGENT';
+  aiLabel.textContent = '🤖 AI AGENT';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   updateTelemetry();
   if (on && !STATE.running) startGame();
 }
-aiBtn.addEventListener('click', () => setAi(!STATE.overlord));
+aiBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setAi(!STATE.overlord);
+});
 
 /* ----------  SPEED BUTTONS  ---------- */
 const speedBtns = [...document.querySelectorAll('.speed-btn')];
@@ -1240,7 +1280,13 @@ function setSpeed(mul){
   });
 }
 speedBtns.forEach((button) => {
-  button.addEventListener('click', () => setSpeed(Number(button.dataset.speed)));
+  const selectSpeed = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSpeed(Number(button.dataset.speed));
+  };
+  button.addEventListener('pointerdown', selectSpeed);
+  button.addEventListener('click', selectSpeed);
 });
 
 document.getElementById('goBtn').addEventListener('click', () => startGame());
