@@ -6,127 +6,18 @@
 <title>FLAPPY BIRD · AI AGENT</title>
 <style>
   :root{
-    --side-1:#cfe9ff;
-    --side-2:#aacfee;
-    --side-3:#7fb6dd;
     --ink:#0a1929;
-    --neon-lime:#00ff88;
     --neon-cyan:#00e6ff;
-    --neon-pink:#ff2bd6;
-    --neon-amber:#ffd000;
   }
   *{ box-sizing:border-box; }
   html,body{ height:100%; margin:0; }
   body{
     font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
     color:var(--ink);
-    background:
-      radial-gradient(1100px 700px at 50% 0%, #e3f3ff 0%, transparent 70%),
-      linear-gradient(180deg, var(--side-1) 0%, var(--side-2) 60%, var(--side-3) 100%);
-    overflow:hidden;
     -webkit-font-smoothing:antialiased;
   }
 
-  /* Centered stage */
-  #stage{
-    position:fixed; inset:0;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    gap:22px;
-    padding:24px;
-  }
-
   /* Game container holds the canvas pair */
-  .game{
-    position:relative;
-    padding:6px;
-    border-radius:18px;
-    background: linear-gradient(180deg, #87CEEB, #4EC0CA);
-    box-shadow:
-      0 30px 80px rgba(0,60,100,.35),
-      0 0 0 2px #5ba8c8 inset;
-  }
-  canvas#game{
-    display:block;
-    background:#73C2CA;
-    border-radius:14px;
-    image-rendering: pixelated;
-    box-shadow: inset 0 0 0 2px #4a9fb0;
-    /* Visual scale is finalized below to the 360×640 reference board. */
-    width:  min(92vmin, 460px);
-    height: auto;
-  }
-  canvas#overlay{
-    position:absolute; left:6px; top:6px;
-    pointer-events:none;
-    border-radius:14px;
-    mix-blend-mode: screen;
-    width:  min(92vmin, 460px);
-    height: auto;
-  }
-
-  /* Score strip — chunky pixel-art digits, like the original mobile game */
-  .score-strip{
-    position:absolute; top:14px; left:50%; transform:translateX(-50%);
-    display:flex; gap:6px; z-index:6; pointer-events:none;
-  }
-  .dig{
-    background:#fff;
-    color:#0a1929;
-    font-weight:900;
-    font-size:38px;
-    padding:6px 14px;
-    border:2px solid #0a1929;
-    border-radius:10px;
-    box-shadow: 0 6px 0 #0a1929, 0 12px 24px rgba(0,0,0,.25);
-    min-width:38px; text-align:center;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ============================================================
-     THE BUTTON — single, huge, "Activate AI Agent"
-     ============================================================ */
-  #ai-btn{
-    margin-top:10px;
-    width: min(560px, 92vw);
-    height: 104px;
-    border:none;
-    border-radius:22px;
-    cursor:pointer;
-    color:#00170b;
-    font-weight:900;
-    letter-spacing:.20em;
-    font-size:36px;
-    background:
-      radial-gradient(circle at 30% 30%, #ffffff 0%, var(--neon-lime) 30%, #00c46b 80%);
-    box-shadow:
-      0 0 0 4px #003b22 inset,
-      0 20px 50px rgba(0,255,136,.45),
-      0 0 80px rgba(0,255,136,.7);
-    position:relative;
-    transition:transform .12s ease, box-shadow .12s ease;
-  }
-  #ai-btn:hover{ transform:translateY(-2px) scale(1.01); }
-  #ai-btn:active{ transform:translateY(1px) scale(.99); }
-  #ai-btn .coin{
-    position:absolute; left:22px; top:50%; transform:translateY(-50%);
-    width:42px; height:42px;
-    color:#003b22;
-  }
-  #ai-btn .corner{
-    position:absolute; font-size:11px; opacity:.7; letter-spacing:.25em; font-weight:700;
-  }
-  #ai-btn .corner.tl{ top:10px; left:78px; }
-  #ai-btn .corner.br{ bottom:10px; right:22px; }
-  #ai-btn.off{
-    background: radial-gradient(circle at 30% 30%, #ffffff, #d6ebff 60%, #aacfee);
-    color:#0a1929;
-    box-shadow:
-      0 0 0 4px #355c80 inset,
-      0 20px 50px rgba(10,25,41,.18);
-  }
-  /* ----------  SPEED BUTTONS (1× / 2× / 3×) ---------- */
-
   /* ============================================================
      CANONICAL GAME OVER PANEL — drawn INSIDE the game canvas,
      not floating over the page. Matches the dong-nguyen mobile
@@ -281,25 +172,6 @@
     gap:20px;
     align-items:center;
   }
-  .topbar{
-    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
-    padding:0 4px;
-  }
-  .brand-kicker{
-    margin:0 0 6px;
-    color:#e9ffff; font-size:11px; font-weight:900; letter-spacing:.28em;
-    text-shadow:0 2px 0 rgba(24,83,104,.35);
-  }
-  .brand-title{
-    margin:0; color:#fff; font-size:clamp(28px, 4vw, 48px); line-height:.95;
-    letter-spacing:.06em; text-shadow:0 3px 0 #2c687b, 0 7px 18px rgba(24,83,104,.28);
-  }
-  .brand-title span{ color:#ffe37b; }
-  .build-stamp{
-    padding:10px 13px; border:2px solid rgba(255,255,255,.62); border-radius:7px;
-    color:#eaffff; background:rgba(18,82,104,.26); font-size:10px; font-weight:800;
-    letter-spacing:.12em; line-height:1.5; text-align:right; box-shadow:inset 0 1px rgba(255,255,255,.22);
-  }
   .app-shell{
     display:grid; grid-template-columns:minmax(300px, 430px) minmax(300px, 1fr);
     gap:28px; align-items:center; justify-content:center;
@@ -349,7 +221,6 @@
   #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
   @media (max-width:800px){
     #stage{ padding:20px 16px; gap:16px; }
-    .topbar{ align-items:flex-start; } .build-stamp{ display:none; }
     .app-shell{ grid-template-columns:1fr; gap:20px; }
     .agent-panel{ justify-self:center; max-width:430px; }
     canvas#game, canvas#overlay{ width:min(80vw, 350px); }
@@ -383,7 +254,6 @@
     padding:28px 0 34px;
     display:block;
   }
-  .topbar{ display:none; }
   .app-shell{
     width:100%;
     margin:0;
@@ -566,7 +436,6 @@
     height:calc(100% - 8px);
     mix-blend-mode:screen;
   }
-  .score-strip{ display:none; }
   .veil.is-ready{ display:none; }
   @media (min-width:801px){
     #stage{
@@ -590,7 +459,6 @@
     .play-column{ order:1; }
     .agent-panel{ order:2; }
     .game{ width:min(368px, calc(100vw - 32px)); }
-    .game-caption{ margin-bottom:8px; }
     #stage{ padding:28px 0 34px; }
     .agent-panel{ padding:46px 46px 42px; }
     .agent-panel-header{ gap:8px; }
@@ -709,21 +577,11 @@
 </head>
 <body>
   <div id="stage">
-    <header class="topbar">
-      <div>
-        <p class="brand-kicker">OPEN-SOURCE ARCADE LAB · 01</p>
-        <h1 class="brand-title">FLAPPY <span>AI</span></h1>
-      </div>
-      <div class="build-stamp">CANVAS BUILD<br>AGENT TELEMETRY ONLINE</div>
-    </header>
-
     <main class="app-shell">
       <section class="play-column" aria-label="Flappy Bird game">
         <div class="game">
           <canvas id="game" width="360" height="640"></canvas>
           <canvas id="overlay" width="360" height="640"></canvas>
-
-          <div class="score-strip" id="scoreStrip" aria-label="score"></div>
 
           <div class="veil is-ready" id="veil">
             <h2 class="go-title" id="goTitle">READY</h2>
@@ -780,7 +638,6 @@
 <script>
 // Match the reference implementation's 360×640 board and sprite geometry.
 const GW = 360, GH = 640;
-const GROUND_H = 0;
 const GRAV = 1, FLAP = -9, MAX_VY = 10;
 const PIPE_W = 64, PIPE_GAP = 160, SPEED = 4;
 const ASSET_BASE = 'https://raw.githubusercontent.com/ImKennyYip/flappy-bird-java/master/';
@@ -822,230 +679,6 @@ const readoutScore = document.getElementById('readoutScore');
 const readoutMilestone = document.getElementById('readoutMilestone');
 const readoutTarget = document.getElementById('readoutTarget');
 const readoutVelocity = document.getElementById('readoutVelocity');
-
-/* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
-                the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
-const COL = {
-  // sky — canonical Flappy Bird light-blue fill
-  bgSky:'#70C5CE',
-  // city silhouette  (pale grey-blue, sits low behind bushes)
-  city:'rgba(168,196,205,.95)',
-  // mid-ground bushes  (pale sage, similar to official mobile clone)
-  bush:'rgba(150,196,108,.95)',
-  // pipes
-  pipe:'#73BF2E',          // vibrant body green — canonical Flappy Bird pipe
-  pipeLip:'#558B2F',       // darker cap green
-  pipeLipDk:'#33691E',     // outline + step accent
-  pipeShine:'rgba(255,255,255,.14)',
-  // ground — green grass + tan dirt, canonical mobile-clone palette
-  grass:'#8BC34A', grassDk:'#689F38',
-  dirt:'#DED895', dirtDk:'#C8C27A',
-  // bird
-  birdBody:'#F8D437', birdBelly:'#FFFFFF',
-  birdWing:'#D89423', birdBeakT:'#F08421', birdBeakB:'#D86E10',
-  birdTail:'#E2A03A',
-};
-
-/* ----------  SCENE  ---------- */
-function drawProceduralScene(){
-  const byGround = GH - GROUND_H;
-
-  // sky — flat cyan fill (canonical Flappy Bird)
-  gctx.fillStyle = COL.bgSky;
-  gctx.fillRect(0, 0, GW, byGround);
-
-  // pixel-art clouds (slow horizontal drift)
-  gctx.fillStyle = 'rgba(255,255,255,0.55)';
-  for (let i = 0; i < 3; i++){
-    const cx = (i * 130 + (STATE.groundX * 0.08)) % (GW + 100) - 50;
-    const cy = 80 + i * 55;
-    gctx.fillRect(cx,      cy, 28, 10);
-    gctx.fillRect(cx + 8,  cy - 6, 18, 10);
-  }
-
-  // distant city silhouette (slow parallax)
-  gctx.fillStyle = COL.city;
-  for (let i = -1; i < 8; i++){
-    const bx = (i * 54 + (STATE.groundX * 0.15)) % (GW + 60) - 4;
-    const seed = (i * 11 + 5) % 19;
-    const bh  = 24 + seed;
-    const bw  = 32 + (seed % 10);
-    // terraced building (wider base, narrower upper)
-    gctx.fillRect(bx,       byGround - bh,      bw,     bh);
-    gctx.fillRect(bx - 4,   byGround - bh - 10, bw + 8, 12);
-    gctx.fillRect(bx + 2,   byGround - bh - 16, bw - 4, 8);
-    // lit windows
-    gctx.fillStyle = 'rgba(255,255,255,0.35)';
-    for (let wy = byGround - bh + 6; wy < byGround - 10; wy += 14){
-      for (let wx = bx + 4; wx < bx + bw - 4; wx += 12){
-        gctx.fillRect(wx, wy, 4, 5);
-      }
-    }
-    gctx.fillStyle = COL.city;
-  }
-
-  // mid-ground bushes — smooth bezier humps, flat base
-  gctx.fillStyle = COL.bush;
-  for (let i = -1; i < 5; i++){
-    const x = (i * 130 + (STATE.groundX * 0.45)) % (GW + 140) - 20;
-    const by = byGround;
-    gctx.beginPath();
-    gctx.moveTo(x, by);
-    // first hump
-    gctx.quadraticCurveTo(x + 20, by - 34, x + 48,  by - 10);
-    // second hump
-    gctx.quadraticCurveTo(x + 72, by - 28, x + 100, by - 6);
-    // third hump
-    gctx.quadraticCurveTo(x + 118, by - 18, x + 150, by);
-    gctx.closePath();
-    gctx.fill();
-  }
-
-  // pipes
-  for (const p of STATE.pipes){
-    const botY = p.gapY + p.gapH;
-    const botH = byGround - botY;
-    drawPipe(gctx, p.x, botY, PIPE_W, botH, false);
-    drawPipe(gctx, p.x, 0,     PIPE_W, p.gapY, true);
-  }
-
-  // ground — chevron / diagonal stripe pattern
-  const gy = byGround;
-  gctx.fillStyle = COL.grass;
-  gctx.fillRect(0, gy, GW, 12);
-  gctx.fillStyle = COL.grassDk;
-  // scrolling triangular chevron pips (canonical grass texture)
-  for (let i = (STATE.groundX % 12) - 12; i < GW + 12; i += 6){
-    gctx.beginPath();
-    gctx.moveTo(i,     gy + 2);
-    gctx.lineTo(i + 3, gy + 10);
-    gctx.lineTo(i - 3, gy + 10);
-    gctx.closePath();
-    gctx.fill();
-  }
-  // dirt strip
-  gctx.fillStyle = COL.dirt;
-  gctx.fillRect(0, gy + 12, GW, GROUND_H - 12);
-  gctx.fillStyle = COL.dirtDk;
-  for (let i = (STATE.groundX % 14) - 14; i < GW + 14; i += 7){
-    gctx.beginPath();
-    gctx.moveTo(i,     gy + 16);
-    gctx.lineTo(i + 2, gy + 22);
-    gctx.lineTo(i - 2, gy + 22);
-    gctx.closePath();
-    gctx.fill();
-  }
-}
-
-/* ----------  PIPE  (flat darker-stripe cap at closed end, no overhang, like real Flappy Bird) ---------- */
-function drawPipe(ctx, x, y, w, h, isTop){
-  const lipH = 22;
-  const over = 6;                  // cap overhangs body 6 px each side
-  if (h < lipH) return;
-
-  // The cap sits at the closed end — bottom for top pipe, top for bottom pipe.
-  const capY  = isTop ? y + h - lipH : y;
-  const bodyY = isTop ? y            : y + lipH;
-  const bodyH = h - lipH;
-  const capW  = w + over * 2;
-
-  // BODY (narrower than the cap)
-  ctx.fillStyle = COL.pipe;
-  ctx.fillRect(x + over, bodyY, w, bodyH);
-
-  // left-edge highlight on the body
-  ctx.fillStyle = COL.pipeShine;
-  ctx.fillRect(x + over + 1, bodyY, 4, bodyH);
-
-  // OVERHANGING CAP
-  ctx.fillStyle = COL.pipeLip;
-  ctx.fillRect(x, capY, capW, lipH);
-
-  // cap top highlight
-  ctx.fillStyle = COL.pipeShine;
-  ctx.fillRect(x, capY, capW, 2);
-
-  // dark accent at the cap/body seam
-  ctx.fillStyle = COL.pipeLipDk;
-  if (isTop) ctx.fillRect(x, capY + lipH - 2, capW, 2);
-  else       ctx.fillRect(x, capY,              capW, 2);
-
-  // right-edge shadow band on the cap
-  ctx.fillStyle = COL.pipeLipDk;
-  ctx.fillRect(x + capW - 4, capY + 2, 3, lipH - 4);
-}
-
-function drawProceduralBird(ctx, b, t){
-  ctx.save();
-  ctx.translate(b.x, b.y);
-  const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
-  ctx.rotate(tilt);
-  const cycle  = ((t/80)|0) % 3;
-  const PX = 3;   // pixel-block size
-
-  // Wing animation offset: up / rest / down
-  const wingDY = cycle === 1 ? -2*PX : (cycle === 2 ? PX : 0);
-
-  // ---- TAIL (5 dark-orange pixel blocks — three-spike fan behind body) ----
-  ctx.fillStyle = COL.birdTail;
-  ctx.fillRect(-5*PX, -1*PX, 2*PX, PX);          // top spike base
-  ctx.fillRect(-4*PX, -0*PX, PX, PX);           // top spike tip
-  ctx.fillRect(-5*PX,  1*PX, 2*PX, PX);          // middle spike
-  ctx.fillRect(-4*PX,  2*PX, PX, PX);           // bottom spike tip
-  ctx.fillRect(-4*PX,  3*PX, PX, PX);           // bottom spike base
-
-  // ---- BODY (chunky yellow oval — 7 rows of fillRect) ----
-  ctx.fillStyle = COL.birdBody;
-  ctx.fillRect(-1*PX, -3*PX, 4*PX, PX);          // row -3: narrow top
-  ctx.fillRect(-2*PX, -2*PX, 7*PX, PX);          // row -2: widening
-  ctx.fillRect(-3*PX, -1*PX, 9*PX, PX);          // row -1: widest (eye level)
-  ctx.fillRect(-3*PX,  0*PX, 9*PX, PX);          // row  0: center
-  ctx.fillRect(-3*PX,  1*PX, 9*PX, PX);          // row  1: center
-  ctx.fillRect(-2*PX,  2*PX, 7*PX, PX);          // row  2: narrowing
-  ctx.fillRect(-1*PX,  3*PX, 4*PX, PX);          // row  3: bottom
-
-  // ---- WHITE BELLY (lower-right of body) ----
-  ctx.fillStyle = COL.birdBelly;
-  ctx.fillRect( 0*PX,  1*PX, 5*PX, PX);
-  ctx.fillRect( 1*PX,  2*PX, 4*PX, PX);
-  ctx.fillRect( 2*PX,  3*PX, 2*PX, PX);
-
-  // ---- WING (tan, 5×2 block, animates up ↔ rest ↔ down) ----
-  ctx.fillStyle = COL.birdWing;
-  ctx.fillRect(-2*PX, 0*PX + wingDY, 5*PX, 2*PX);
-
-  // ---- EYE (round white circle with thick black ring + pupil — canonical look) ----
-  const ex = 2.3*PX, ey = -0*PX;
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(ex, ey, 2.3*PX, 0, Math.PI*2);
-  ctx.fill();
-  ctx.stroke();
-  // pupil
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(ex + 0.6*PX, ey, 0.8*PX, 0, Math.PI*2);
-  ctx.fill();
-  // pupil shine
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(ex + 0.8*PX, ey - 0.2*PX, 0.25*PX, 0, Math.PI*2);
-  ctx.fill();
-
-  // ---- BEAK (oversized two-tone orange rectangle) ----
-  // upper beak (lighter orange)
-  ctx.fillStyle = COL.birdBeakT;
-  ctx.fillRect(5*PX, -1*PX, 5*PX, PX);
-  ctx.fillRect(6*PX,  0*PX, 4*PX, PX);
-  // lower beak (darker orange)
-  ctx.fillStyle = COL.birdBeakB;
-  ctx.fillRect(5*PX,  1*PX, 4*PX, PX);
-  ctx.fillRect(5*PX,  2*PX, 3*PX, PX);
-
-  ctx.restore();
-}
 
 /* ----------  REFERENCE SPRITES  ---------- */
 // The Java reference paints a 360×640 background, 64×512 pipes, and a
@@ -1101,7 +734,7 @@ function reset(){
   STATE.score = 0; STATE.flapCount = 0; STATE.dying = false; STATE.gameOver = false;
   STATE.pipes.push(makePipe(GW + 60));
   STATE.pipes.push(makePipe(GW + 60 + 180));
-  setScore(0);
+  STATE.score = 0;
 }
 function makePipe(x){
   const gapH = PIPE_GAP;
@@ -1233,11 +866,13 @@ function step(){
   if (!last || last.x < GW-200) STATE.pipes.push(makePipe(GW+20));
   for (const p of STATE.pipes){
     if (!p.passed && p.x + PIPE_W < STATE.bird.x){
-      p.passed = true; setScore(STATE.score + 1);
+      p.passed = true;
+      STATE.score++;
+      if (STATE.score > getBest()) setBest(STATE.score);
     }
   }
   if (STATE.overlord) keepAgentSafe();
-  if (STATE.bird.y > GH-GROUND_H-8 || STATE.bird.y < 8){
+  if (STATE.bird.y > GH - 8 || STATE.bird.y < 8){
     if (!STATE.overlord) die();
     return;
   }
@@ -1255,19 +890,6 @@ function step(){
       }
     }
   }
-}
-
-const SCORE_CELLS = [0,1,2].map(()=>{
-  const d = document.createElement('div'); d.className='dig'; d.textContent='0';
-  document.getElementById('scoreStrip').appendChild(d); return d;
-});
-function setScore(n){
-  STATE.score = n;
-  const s = String(n).padStart(3,'0');
-  for (let i=0;i<3;i++) SCORE_CELLS[i].textContent = s[i];
-  // Persist running best score live so the BEST line updates from frame 0
-  const cur = getBest();
-  if (n > cur){ setBest(n); }
 }
 
 /* ============================================================
@@ -1474,7 +1096,7 @@ function drawOverlay(obs, pol, t){
     ? ('AI · conf ' + pol.conf.toFixed(2))
     : 'manual';
   const w = octx.measureText(statTxt).width + 14;
-  const pillY = GH - GROUND_H - 18;   // 18 px above the grass
+  const pillY = GH - 18;   // 18 px above the grass
   octx.fillStyle = 'rgba(0,0,0,.45)';
   octx.fillRect(8, pillY, w, 14);
   octx.strokeStyle = STATE.overlord ? 'rgba(0,255,136,.7)' : 'rgba(255,255,255,.5)';
@@ -1564,8 +1186,8 @@ function dieDropStep(){
   STATE.dieVy = Math.min(MAX_VY, (STATE.dieVy||0) + GRAV);
   STATE.bird.y += STATE.dieVy;
   STATE.bird.vy = STATE.dieVy;
-  if (STATE.bird.y > GH - GROUND_H - 8){
-    STATE.bird.y = GH - GROUND_H - 8;
+  if (STATE.bird.y > GH - 8){
+    STATE.bird.y = GH - 8;
     STATE.dieVy = 0;
     STATE.dying = false;
   }
