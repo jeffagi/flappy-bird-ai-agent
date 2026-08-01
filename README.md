@@ -12,8 +12,8 @@ The presentation takes cues from the open-source browser-game conventions collec
 
 1. Open `index.html` in any modern browser (Chrome / Safari / Firefox / Edge).
    No build step, no dependencies — the entire game + AI lives in one HTML file.
-2. **SPACE** to flap, **F** to toggle the AI on/off, **2** to switch to **2× turbo speed**, **R** to restart.
-3. Click **ENGAGE AGENT** in the console to engage the agent. Click the smaller **1× / 2×** amber button to make the bird fly through twice as fast.
+2. **SPACE** to flap, **F** to toggle the AI on/off, **1 / 2 / 3** to select **1× / 2× / 3× speed**, **R** to restart.
+3. Click the red **AI AGENT** button to turn the agent on; it turns green while running. Select one of the three amber **1× / 2× / 3×** speed buttons to control the simulation speed.
 
 The game uses the 360×640 board, 64×512 pipes, 34×24 bird, sprite placement, and Java-style gravity/flap timing from [ImKennyYip/flappy-bird-java](https://github.com/ImKennyYip/flappy-bird-java). Click the playfield to flap in manual mode; the console keeps the AI decision lines and controls visible without covering the game.
 
@@ -21,7 +21,7 @@ The game uses the 360×640 board, 64×512 pipes, 34×24 bird, sprite placement, 
 
 ## What the AI does
 
-Every sub-step (twice per render frame at 2× speed), the agent reads **four inputs**:
+Every simulation sub-step (including at 2× and 3× speed), the agent reads **four inputs**:
 
 - `bird_y` — the bird's current vertical position
 - `bird_vy` — the bird's current vertical velocity (signed: positive = falling, negative = rising)
@@ -65,7 +65,7 @@ The agent's "thinking" is drawn directly on top of the reference sprites as a gl
 - 🟡 **Amber threshold band** trailing the target zone to the right of the pipe
 - 🟩 **Tiny lime FLAP badge** next to the bird that pulses every time the agent fires
 
-A `1× / 2× TURBO` button under the **ENGAGE AGENT** console control flips the entire simulation between normal and 2× speed while still keeping the agent coupled to the policy thanks to the per-sub-step decision loop.
+The **1× / 2× / 3×** speed buttons under the **AI AGENT** control adjust the simulation while keeping the agent coupled to the policy through the per-sub-step decision loop.
 
 ---
 
@@ -86,9 +86,9 @@ That's it. Serve `index.html` from any static host. The reference sprites are lo
 
 ---
 
-## Level system
+## Score milestones
 
-A bottom-right pill tracks the agent's progress through pipes: `LEVEL N · score/200`. Every 25 pipes unlocks the next level (`Math.floor(score / 25) + 1`), and on each level-up the canvas briefly flashes a giant amber `LEVEL N` with the subline `UNBEATABLE AGENT` for 1.3 s — a visible confirmation that the AI is still climbing. With the deterministic physics in this file (160 px gap, 34 × 24 bird sprite, gravity 1, flap −9, terminal vy 10, 4 px/frame scroll), the safety controller keeps the AI inside the safe interval rather than allowing a collision race. There is no level cap; engage the agent and watch it continue beyond level 14.
+The bottom-right pill tracks score progress as `SCORE N · NEXT M`. The game celebrates every +100 score milestone — 100, 200, 300, 400, and onward — with a brief amber `MILESTONE N` flash and `+100 SCORE` subline. There is no milestone cap; engage the agent and watch it keep climbing. With the deterministic physics in this file (160 px gap, 34 × 24 bird sprite, gravity 1, flap −9, terminal vy 10, 4 px/frame scroll), the safety controller keeps the AI inside the safe interval rather than allowing a collision race.
 
 ---
 
