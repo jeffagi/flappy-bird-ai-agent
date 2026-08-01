@@ -125,49 +125,7 @@
       0 0 0 4px #355c80 inset,
       0 20px 50px rgba(10,25,41,.18);
   }
-  /* ----------  2× SPEED BUTTON  (smaller, amber turbo) -------------- */
-  .speed-btn{
-    margin-top:-8px;
-    width: 220px;
-    height: 64px;
-    border:none;
-    border-radius:16px;
-    cursor:pointer;
-    color:#3a1f00;
-    font-weight:900;
-    letter-spacing:.20em;
-    font-size:22px;
-    background: radial-gradient(circle at 30% 30%, #ffffff, #e8b072 60%, #c08840);
-    box-shadow:
-      0 0 0 3px #5d3914 inset,
-      0 12px 28px rgba(180,100,30,.25);
-    position:relative;
-    transition:transform .12s ease, box-shadow .12s ease;
-  }
-  .speed-btn:hover{ transform:translateY(-2px) scale(1.01); }
-  .speed-btn.active{
-    background: radial-gradient(circle at 30% 30%, #ffffff, #ffe085 30%, #ffc62e);
-    color: #4a2c00;
-    box-shadow:
-      0 0 0 3px #664400 inset,
-      0 12px 28px rgba(255,200,0,.55),
-      0 0 50px rgba(255,200,0,.65);
-  }
-  .speed-btn .corner{
-    position:absolute; font-size:10px; opacity:.7; letter-spacing:.22em; font-weight:700;
-  }
-  .speed-btn .corner.tl{ top:8px;  left:14px; }
-  .speed-btn .corner.br{ bottom:8px; right:14px; }
-  /* Tiny status text under the button */
-  #status{
-    color:#0a1929;
-    font-size:13px;
-    letter-spacing:.20em;
-    font-weight:700;
-    opacity:.78;
-    text-align:center;
-  }
-  #status b{ color:#003b22; }
+  /* ----------  SPEED BUTTONS (1× / 2× / 3×) ---------- */
 
   /* ============================================================
      CANONICAL GAME OVER PANEL — drawn INSIDE the game canvas,
@@ -357,10 +315,7 @@
   }
   canvas#game{ box-shadow:inset 0 0 0 2px rgba(0,0,0,.18); }
   canvas#overlay{ left:8px; top:8px; }
-  .game-caption{
-    display:flex; align-items:center; gap:9px; color:#164758; font-size:10px; font-weight:900;
-    letter-spacing:.14em; text-transform:uppercase;
-  }
+  .game-caption{ display:flex; align-items:center; gap:9px; }
   .game-caption::before{ content:""; width:28px; height:2px; background:#ffe37b; box-shadow:0 0 0 1px rgba(20,74,87,.2); }
   .game-caption .live-dot{ margin-left:7px; }
   .agent-panel{
@@ -382,14 +337,6 @@
   .telemetry-cell .value{ display:block; margin-top:6px; color:#fff; font-size:19px; font-weight:900; letter-spacing:.04em; }
   .telemetry-cell .value.green{ color:#7dff9c; }
   .telemetry-cell .value.pink{ color:#ff79e7; }
-  .agent-copy{ margin:0 0 16px; color:#a9cbd0; font-size:11px; line-height:1.65; }
-  .line-legend{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
-  .legend-item{ display:flex; align-items:center; gap:8px; color:#c8e1e5; font-size:10px; font-weight:800; letter-spacing:.05em; }
-  .legend-swatch{ width:18px; height:3px; flex:none; box-shadow:0 0 8px currentColor; }
-  .legend-swatch.lime{ color:#00ff88; background:#00ff88; }
-  .legend-swatch.cyan{ color:#00e6ff; background:#00e6ff; }
-  .legend-swatch.pink{ color:#ff2bd6; background:#ff2bd6; }
-  .legend-swatch.amber{ color:#ffd000; background:#ffd000; }
   .control-label{ margin:0 0 8px; color:#85b8c1; font-size:9px; font-weight:900; letter-spacing:.2em; }
   #ai-btn{
     width:100%; height:64px; margin:0; border-radius:4px; font-size:19px; letter-spacing:.13em;
@@ -400,25 +347,12 @@
   #ai-btn .coin{ width:27px; height:27px; left:15px; }
   #ai-btn .corner.tl{ top:7px; left:54px; font-size:8px; }
   #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
-  .control-row{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
-  .speed-btn{ width:100%; height:45px; margin:0; border-radius:4px; font-size:15px; box-shadow:0 3px 0 #76501e, inset 0 0 0 2px #ffe9ad; }
-  .speed-btn.active{ box-shadow:0 3px 0 #76501e, 0 0 20px rgba(255,200,0,.35), inset 0 0 0 2px #fff4bf; }
-  .speed-btn .corner{ font-size:7px; }
-  .speed-btn .corner.tl{ top:6px; left:9px; } .speed-btn .corner.br{ bottom:6px; right:9px; }
-  .manual-btn{ height:45px; border:0; border-radius:4px; color:#d9f5f7; background:#214e5d; box-shadow:0 3px 0 #123642; font:900 12px ui-monospace,monospace; letter-spacing:.1em; cursor:pointer; }
-  .manual-btn:hover{ background:#2b6474; transform:translateY(-1px); }
-  #status{ margin-top:16px; color:#85b8c1; font-size:9px; line-height:1.6; letter-spacing:.11em; }
-  #status b{ color:#ffe37b; }
-  .credits{ display:flex; justify-content:space-between; gap:14px; padding:12px 4px 0; border-top:1px solid rgba(255,255,255,.28); color:#245a6a; font-size:10px; line-height:1.5; letter-spacing:.04em; }
-  .credits a{ color:#164758; font-weight:900; }
-  .credits strong{ color:#164758; }
   @media (max-width:800px){
     #stage{ padding:20px 16px; gap:16px; }
     .topbar{ align-items:flex-start; } .build-stamp{ display:none; }
     .app-shell{ grid-template-columns:1fr; gap:20px; }
     .agent-panel{ justify-self:center; max-width:430px; }
     canvas#game, canvas#overlay{ width:min(80vw, 350px); }
-    .credits{ flex-direction:column; gap:5px; }
   }
 
   /* ============================================================
@@ -535,28 +469,6 @@
   }
   .telemetry-cell .value.green{ color:#73ff9a; }
   .telemetry-cell .value.pink{ color:#73ff9a; }
-  .agent-copy{
-    margin:0 0 34px;
-    color:#b1d2d7;
-    font-size:21px;
-    line-height:1.7;
-    letter-spacing:.01em;
-  }
-  .agent-copy strong{ color:#c3e4e7; }
-  .line-legend{
-    gap:18px 32px;
-    margin:0 0 37px;
-  }
-  .legend-item{
-    gap:16px;
-    color:#d3e7e9;
-    font-size:17px;
-    letter-spacing:.05em;
-  }
-  .legend-swatch{
-    width:36px; height:6px;
-    box-shadow:0 0 13px currentColor;
-  }
   .control-label{
     margin:0 0 16px;
     color:#91c9cf;
@@ -593,44 +505,31 @@
   #ai-btn .corner.tl{ top:12px; left:102px; font-size:15px; color:#385469; }
   #ai-btn .corner.br{ bottom:13px; right:29px; font-size:15px; color:#385469; }
   .control-row{
-    grid-template-columns:1fr;
-    gap:18px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:12px;
     margin-top:20px;
   }
-  .speed-btn, .manual-btn{
+  .speed-btn{
     width:100%;
     height:90px;
-    border-radius:8px;
-  }
-  .speed-btn{
-    font-size:27px;
     border:3px solid #ffe9b1;
+    border-radius:8px;
+    color:#3a1f00;
+    font-size:27px;
+    font-weight:900;
+    letter-spacing:.20em;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
     background:linear-gradient(145deg, #fff8e6 0%, #f0bd77 100%);
     box-shadow:0 8px 0 #9d6a2c, inset 0 0 0 2px rgba(255,255,255,.6);
   }
+  .speed-btn:hover{ transform:translateY(-2px) scale(1.01); }
   .speed-btn.active{
+    color:#4a2c00;
+    background:linear-gradient(145deg, #fffdf0 0%, #ffd45a 100%);
     box-shadow:0 8px 0 #9d6a2c, 0 0 24px rgba(255,200,0,.38), inset 0 0 0 2px #fff4bf;
   }
-  .speed-btn .corner{ font-size:14px; color:#654a33; }
-  .speed-btn .corner.tl{ top:12px; left:16px; }
-  .speed-btn .corner.br{ bottom:11px; right:16px; }
-  .manual-btn{
-    color:#e0f3f4;
-    background:#24596b;
-    box-shadow:0 8px 0 #173e4c;
-    font-size:19px;
-    letter-spacing:.08em;
-  }
-  .manual-btn:hover{ background:#2d6a7c; }
-  #status{
-    margin:34px 0 0;
-    color:#77aeb8;
-    font-size:16px;
-    line-height:1.8;
-    letter-spacing:.12em;
-    text-align:center;
-  }
-  #status b{ color:#ffe16c; }
   /* Keep the actual game visible beside the console on larger screens,
      and below it on narrow screens. The console itself stays limited to
      live metrics, the AI Agent control, and the speed control. */
@@ -639,7 +538,6 @@
     order:1;
     min-width:0;
   }
-  .credits{ display:none; }
   /* Final game surface: use the reference board at a fixed 9:16 ratio.
      The canvas is scaled as one unit, so the overlay and sprites never drift. */
   .game{
@@ -704,12 +602,8 @@
     .telemetry-cell{ padding-left:24px; padding-right:18px; }
     .telemetry-cell .label{ font-size:clamp(12px, 3.1vw, 17px); }
     .telemetry-cell .value{ font-size:clamp(28px, 7vw, 40px); }
-    .agent-copy{ font-size:clamp(16px, 3.65vw, 21px); }
-    .legend-item{ font-size:clamp(12px, 2.9vw, 17px); }
-    .control-row{ gap:18px; }
-    .speed-btn{ width:100%; font-size:clamp(19px, 5vw, 27px); }
-    .manual-btn{ font-size:clamp(12px, 3.25vw, 19px); }
-    #status{ font-size:clamp(11px, 2.75vw, 16px); }
+    .control-row{ gap:10px; }
+    .speed-btn{ width:100%; font-size:clamp(17px, 4.2vw, 27px); }
   }
   @media (max-width:360px){
     .agent-panel{ padding-left:24px; padding-right:24px; }
@@ -745,12 +639,8 @@
   #ai-btn .coin{ width:24px; height:24px; left:15px; }
   #ai-btn .corner.tl{ top:7px; left:52px; font-size:8px; }
   #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
-  .control-row{ gap:10px; margin-top:12px; }
-  .speed-btn, .manual-btn{ height:48px; border-radius:6px; }
-  .speed-btn{ font-size:16px; border-width:2px; }
-  .speed-btn .corner{ font-size:8px; }
-  .speed-btn .corner.tl{ top:6px; left:10px; }
-  .speed-btn .corner.br{ bottom:6px; right:10px; }
+  .control-row{ grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+  .speed-btn{ height:48px; border-radius:6px; font-size:16px; border-width:2px; }
   @media (min-width:801px){
     #stage{ width:min(812px, calc(100vw - 24px)); }
     .app-shell{ grid-template-columns:368px 368px; gap:24px; }
@@ -771,6 +661,50 @@
     .telemetry-cell .label{ font-size:clamp(9px, 2.5vw, 10px); }
     .telemetry-cell .value{ font-size:clamp(19px, 6vw, 23px); }
   }
+
+  /* AI AGENT state — green while running, red while off. */
+  #ai-btn,
+  #ai-btn.off{
+    color:#fff;
+    background:linear-gradient(180deg, #ff6b6b 0%, #c62828 100%);
+    border-color:#8f1717;
+    box-shadow:0 5px 0 #7d1717, 0 0 22px rgba(220,38,38,.28), inset 0 0 0 2px rgba(255,255,255,.5);
+  }
+  #ai-btn:not(.off){
+    color:#062b16;
+    background:linear-gradient(180deg, #baffc8 0%, #30c866 100%);
+    border-color:#197845;
+    box-shadow:0 5px 0 #197845, 0 0 22px rgba(34,197,94,.3), inset 0 0 0 2px rgba(255,255,255,.65);
+  }
+  #ai-btn:hover{ transform:translateY(-2px); }
+  #ai-btn:active{ transform:translateY(1px); }
+
+  /* Warm gold control surface — keeps the telemetry console close to the reference swatch. */
+  .agent-panel{
+    color:#3d2609;
+    background:
+      linear-gradient(145deg, rgba(255,239,170,.98) 0%, rgba(232,177,67,.98) 48%, rgba(196,126,24,.98) 100%);
+    border-color:#8b5a12;
+    box-shadow:
+      0 0 0 1px rgba(255,248,207,.72) inset,
+      0 12px 0 rgba(110,68,10,.55),
+      0 24px 44px rgba(120,76,17,.28);
+  }
+  .agent-panel-header{ border-bottom-color:rgba(112,70,10,.36); }
+  .panel-kicker,
+  .control-label{ color:#70470d; }
+  .panel-title{ color:#3a2308; text-shadow:0 1px 0 rgba(255,238,164,.65); }
+  .panel-state{ color:#65420d; }
+  .agent-panel .live-dot{ background:#8c671f; box-shadow:0 0 0 4px rgba(112,70,10,.14); }
+  .agent-panel .live-dot.on{ background:#197845; box-shadow:0 0 0 4px rgba(25,120,69,.16), 0 0 14px #197845; }
+  .telemetry-cell{
+    border-color:rgba(112,70,10,.34);
+    background:rgba(255,247,207,.46);
+  }
+  .telemetry-cell .label{ color:#795317; }
+  .telemetry-cell .value{ color:#3a2308; }
+  .telemetry-cell .value.green{ color:#0aa65a; }
+  .telemetry-cell .value.pink{ color:#8a3b16; }
 </style>
 </head>
 <body>
@@ -809,7 +743,7 @@
             <button class="go-btn" id="goBtn" type="button">OK</button>
           </div>
         </div>
-        <div class="game-caption"><span class="live-dot on"></span> PLAYFIELD / LIVE SENSOR LINES</div>
+        <div class="game-caption" aria-hidden="true"><span class="live-dot on"></span></div>
       </section>
 
       <aside class="agent-panel" aria-label="AI agent console">
@@ -821,17 +755,19 @@
           <div class="telemetry-cell"><span class="label">RUN STATE</span><span class="value green" id="readoutState">READY</span></div>
           <div class="telemetry-cell"><span class="label">DECISION</span><span class="value pink" id="readoutAction">HOLD</span></div>
           <div class="telemetry-cell score-cell"><span class="label">SCORE</span><span class="value" id="readoutScore">000</span></div>
-          <div class="telemetry-cell"><span class="label">LEVEL</span><span class="value" id="readoutLevel">01</span></div>
+          <div class="telemetry-cell"><span class="label">MILESTONE</span><span class="value" id="readoutMilestone">100</span></div>
           <div class="telemetry-cell"><span class="label">GAP TARGET</span><span class="value" id="readoutTarget">—</span></div>
           <div class="telemetry-cell"><span class="label">VERTICAL V</span><span class="value" id="readoutVelocity">0.00</span></div>
         </div>
         <p class="control-label">PRIMARY CONTROL</p>
-        <button id="ai-btn" aria-pressed="false">
+        <button id="ai-btn" aria-label="AI AGENT" aria-pressed="false">
           <svg class="coin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/></svg>
-          <span class="corner tl">AI · AGENT</span><span id="aiLabel">🤖 ENGAGE AGENT</span><span class="corner br" id="aiStat">STANDBY</span>
+          <span class="corner tl">AI · AGENT</span><span id="aiLabel">AI AGENT</span><span class="corner br" id="aiStat">STANDBY</span>
         </button>
-        <div class="control-row">
-          <button id="speed-btn" class="speed-btn" aria-pressed="false" title="Toggle 2× speed"><span class="corner tl">TURBO</span><span id="speedLabel">1×</span><span class="corner br" id="speedStat">NORMAL</span></button>
+        <div class="control-row" role="group" aria-label="Game speed">
+          <button class="speed-btn active" data-speed="1" aria-pressed="true" title="Set speed to 1×">1×</button>
+          <button class="speed-btn" data-speed="2" aria-pressed="false" title="Set speed to 2×">2×</button>
+          <button class="speed-btn" data-speed="3" aria-pressed="false" title="Set speed to 3×">3×</button>
         </div>
       </aside>
     </main>
@@ -866,8 +802,8 @@ const STATE = {
   pipes: [], groundX: 0,
   running:false, overlord:false, dying:false, gameOver:false,
   score:0, flapCount:0,
-  speed: 1,                       // 1× normal, 2× turbo
-  lastLevel: 1, levelUpAt: 0,     // level-progression tracking (display + flash)
+  speed: 1,                       // 1× normal, 2× turbo, 3× ultra
+  nextMilestone: 100, milestoneAt: 0, // +100 score milestone tracking
 };
 
 const game     = document.getElementById('game');
@@ -883,7 +819,7 @@ const panelState = document.getElementById('panelState');
 const readoutState = document.getElementById('readoutState');
 const readoutAction = document.getElementById('readoutAction');
 const readoutScore = document.getElementById('readoutScore');
-const readoutLevel = document.getElementById('readoutLevel');
+const readoutMilestone = document.getElementById('readoutMilestone');
 const readoutTarget = document.getElementById('readoutTarget');
 const readoutVelocity = document.getElementById('readoutVelocity');
 
@@ -1249,17 +1185,16 @@ function startGame(){
   document.getElementById('goTitle').textContent = 'READY';
   reset();
   STATE.running = true; STATE.dying = false; STATE.gameOver = false;
-  // Reset the level-progression tracking so the bottom-right pill
-  // doesn't show a stale "LEVEL 9 · 0/200" after a restart.
-  STATE.lastLevel = 1;
-  STATE.levelUpAt = 0;
+  // Reset the +100 score milestone tracker on every new run.
+  STATE.nextMilestone = 100;
+  STATE.milestoneAt = 0;
 }
 /* ----------  SIMPLE MATH SAFETY  ----------
    Keep the agent inside the next opening instead of hoping a late flap
    wins the collision race. The safe interval is simply:
      gapTop + birdRadius + margin <= birdY <= gapBottom - birdRadius - margin
    If the bird is already crossing a pipe, clamp it into that interval and
-   zero its velocity. This makes the AI deterministic and lossless at 1×/2×. */
+   zero its velocity. This makes the AI deterministic and lossless at 1×/2×/3×. */
 function keepAgentSafe(){
   if (!STATE.overlord || !STATE.running) return;
 
@@ -1548,41 +1483,37 @@ function drawOverlay(obs, pol, t){
   octx.fillText(statTxt, 14, pillY + 2);
   octx.restore();
 
-  // ---- SUBTLE bottom-right LEVEL pill (pipes cleared → level)  -----------------
+  // ---- SUBTLE bottom-right score milestone pill -------------------------------
   octx.save();
   octx.font = 'bold 10px ui-monospace, Menlo, monospace';
   octx.textAlign = 'right'; octx.textBaseline = 'top';
-  const lvlTxt = 'LEVEL ' + STATE.lastLevel + ' · ' + STATE.score + '/200';
-  const lw = octx.measureText(lvlTxt).width + 14;
+  const milestoneTxt = 'SCORE ' + STATE.score + ' · NEXT ' + STATE.nextMilestone;
+  const mw = octx.measureText(milestoneTxt).width + 14;
   octx.fillStyle = 'rgba(0,0,0,.45)';
-  octx.fillRect(GW - lw - 8, pillY, lw, 14);
+  octx.fillRect(GW - mw - 8, pillY, mw, 14);
   octx.strokeStyle = 'rgba(255,200,0,.75)';
-  octx.lineWidth = 1; octx.strokeRect(GW - lw - 8 + .5, pillY + .5, lw - 1, 13);
+  octx.lineWidth = 1; octx.strokeRect(GW - mw - 8 + .5, pillY + .5, mw - 1, 13);
   octx.fillStyle = '#ffd000';
-  octx.fillText(lvlTxt, GW - 14, pillY + 2);
+  octx.fillText(milestoneTxt, GW - 14, pillY + 2);
   octx.restore();
 
-  // ---- LEVEL-UP FLASH  (0.9s solid, 0.4s fade)  ---------------------------------
-  if (STATE.lastLevel > 1 && performance.now() - STATE.levelUpAt < 1300){
-    const elapsed = performance.now() - STATE.levelUpAt;
+  // ---- +100 SCORE MILESTONE FLASH  (0.9s solid, 0.4s fade) ---------------------
+  if (STATE.milestoneAt > 0 && performance.now() - STATE.milestoneAt < 1300){
+    const elapsed = performance.now() - STATE.milestoneAt;
     const opacity = elapsed < 900 ? 1 : Math.max(0, (1300 - elapsed) / 400);
     octx.save();
     octx.globalAlpha = opacity;
-    // Anchored top-center, well above the FLAP badge band (which sits
-    // beneath the bird at birdY+18) so a level-up never collides with it.
+    // Anchored top-center, well above the FLAP badge band.
     octx.translate(GW/2, GH/2 - 150);
     octx.font = 'bold 38px ui-monospace, Menlo, monospace';
     octx.textAlign = 'center'; octx.textBaseline = 'middle';
     octx.shadowColor = '#ffd000'; octx.shadowBlur = 26;
     octx.fillStyle = '#ffd000';
-    octx.fillText('LEVEL ' + STATE.lastLevel, 0, 0);
+    octx.fillText('MILESTONE ' + (STATE.nextMilestone - 100), 0, 0);
     octx.shadowBlur = 0;
     octx.font = 'bold 10px ui-monospace, Menlo, monospace';
     octx.fillStyle = '#ffffff';
-    // Subline sits ABOVE the LEVEL text so it never visually masks
-    // the bird, which is typically at y≈130–150 immediately after
-    // a level boundary cross.
-    octx.fillText('UNBEATABLE AGENT', 0, -32);
+    octx.fillText('+100 SCORE', 0, -32);
     octx.restore();
   }
 }
@@ -1652,7 +1583,7 @@ function updateTelemetry(){
   readoutAction.textContent = actionText;
   readoutAction.style.color = pol.action ? '#7dff9c' : '#ff79e7';
   readoutScore.textContent = String(STATE.score).padStart(3, '0');
-  readoutLevel.textContent = String(STATE.lastLevel).padStart(2, '0');
+  readoutMilestone.textContent = String(STATE.nextMilestone);
   readoutTarget.textContent = target === null ? '—' : target + ' PX';
   const velocity = Number(STATE.bird.vy || 0);
   readoutVelocity.textContent = velocity.toFixed(2);
@@ -1661,34 +1592,34 @@ function updateTelemetry(){
   panelDot.classList.toggle('on', STATE.overlord);
 }
 
-// ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
-// lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
+// ----------  SCORE MILESTONES  (every +100 passed pipes) --------------------------
+// nextMilestone and milestoneAt live on STATE above.
 
 /* ----------  INPUTS + AI BUTTON  ---------- */
 function setAi(on){
   STATE.overlord = !!on;
   aiBtn.classList.toggle('off', !on);
   aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  aiLabel.textContent = on ? '🤖 A.I. ENGAGED' : '🤖 ENGAGE AGENT';
+  aiLabel.textContent = 'AI AGENT';
   aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
   updateTelemetry();
   if (on && !STATE.running) startGame();
 }
 aiBtn.addEventListener('click', () => setAi(!STATE.overlord));
 
-/* ----------  SPEED BUTTON  ---------- */
-const speedBtn   = document.getElementById('speed-btn');
-const speedLabel = document.getElementById('speedLabel');
-const speedStat  = document.getElementById('speedStat');
+/* ----------  SPEED BUTTONS  ---------- */
+const speedBtns = [...document.querySelectorAll('.speed-btn')];
 function setSpeed(mul){
-  STATE.speed = Math.max(1, mul|0);
-  const on = STATE.speed > 1;
-  speedBtn.classList.toggle('active', on);
-  speedBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-  speedLabel.textContent = STATE.speed + '×';
-  speedStat.textContent  = on ? 'TURBO' : 'NORMAL';
+  STATE.speed = Math.min(3, Math.max(1, mul|0));
+  speedBtns.forEach((button) => {
+    const selected = Number(button.dataset.speed) === STATE.speed;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
 }
-speedBtn.addEventListener('click', () => setSpeed(STATE.speed === 1 ? 2 : 1));
+speedBtns.forEach((button) => {
+  button.addEventListener('click', () => setSpeed(Number(button.dataset.speed)));
+});
 
 document.getElementById('goBtn').addEventListener('click', () => startGame());
 
@@ -1699,17 +1630,19 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyF')    setAi(!STATE.overlord);
   if (e.code === 'KeyR')    startGame();
-  if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(STATE.speed === 1 ? 2 : 1);
+  if (e.code === 'Digit1' || e.code === 'Numpad1') setSpeed(1);
+  if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(2);
+  if (e.code === 'Digit3' || e.code === 'Numpad3') setSpeed(3);
 });
 
 // restart-on-click anywhere on game area
 document.addEventListener('pointerdown', (e) => {
   if (e.target && e.target.closest){
-    // Bypass on canvas click if it landed on the AI button, the speed button,
+    // Bypass on canvas click if it landed on the AI button, a speed button,
     // or anything inside the GAME OVER / READY veil (OK button, medal, panel).
     if (e.target.closest('.veil'))               return;
     if (e.target.id === 'ai-btn')                return;
-    if (e.target.id === 'speed-btn')             return;
+    if (e.target.closest('.speed-btn'))          return;
     if (e.target.closest('.agent-panel'))        return;
   }
   if (!STATE.running) startGame();
@@ -1719,7 +1652,7 @@ document.addEventListener('pointerdown', (e) => {
 /* ----------  MAIN LOOP  ---------- */
 /* ============================================================
    MAIN LOOP — runs `STATE.speed` sub-steps per render frame.
-   The AI re-decides EVERY sub-step so 2× doesn't outpace it:
+   The AI re-decides EVERY sub-step so turbo speed doesn't outpace it:
    between sub-steps the canvas is unchanged, so the policy fires
    with the same observation twice (giving two flap impulses on
    back-to-back sub-steps if needed). That keeps the bird coupled
@@ -1760,11 +1693,10 @@ function frame(t){
       step();
     }
   }
-  // ----- LEVEL progression check -----
-  const lvl = Math.floor(STATE.score / 25) + 1;
-  if (lvl > STATE.lastLevel){
-    STATE.lastLevel = lvl;
-    if (lvl > 1) STATE.levelUpAt = performance.now();   // level #1 is boot, don't flash
+  // ----- +100 score milestone check -----
+  if (STATE.score >= STATE.nextMilestone){
+    STATE.nextMilestone += 100;
+    STATE.milestoneAt = performance.now();
   }
   updateTelemetry();
   drawScene();
