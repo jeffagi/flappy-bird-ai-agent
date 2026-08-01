@@ -1,0 +1,1312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FLAPPY BIRD · AI AGENT</title>
+<style>
+  :root{
+    --side-1:#cfe9ff;
+    --side-2:#aacfee;
+    --side-3:#7fb6dd;
+    --ink:#0a1929;
+    --neon-lime:#00ff88;
+    --neon-cyan:#00e6ff;
+    --neon-pink:#ff2bd6;
+    --neon-amber:#ffd000;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 700px at 50% 0%, #e3f3ff 0%, transparent 70%),
+      linear-gradient(180deg, var(--side-1) 0%, var(--side-2) 60%, var(--side-3) 100%);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Centered stage */
+  #stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:22px;
+    padding:24px;
+  }
+
+  /* Game container holds the canvas pair */
+  .game{
+    position:relative;
+    padding:6px;
+    border-radius:18px;
+    background: linear-gradient(180deg, #87CEEB, #4EC0CA);
+    box-shadow:
+      0 30px 80px rgba(0,60,100,.35),
+      0 0 0 2px #5ba8c8 inset;
+  }
+  canvas#game{
+    display:block;
+    background:#73C2CA;
+    border-radius:14px;
+    image-rendering: pixelated;
+    box-shadow: inset 0 0 0 2px #4a9fb0;
+    /* Visual scale (native 288x512 rendered larger) */
+    width:  min(92vmin, 460px);
+    height: auto;
+  }
+  canvas#overlay{
+    position:absolute; left:6px; top:6px;
+    pointer-events:none;
+    border-radius:14px;
+    mix-blend-mode: screen;
+    width:  min(92vmin, 460px);
+    height: auto;
+  }
+
+  /* Score strip — chunky pixel-art digits, like the original mobile game */
+  .score-strip{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:6px; z-index:6; pointer-events:none;
+  }
+  .dig{
+    background:#fff;
+    color:#0a1929;
+    font-weight:900;
+    font-size:38px;
+    padding:6px 14px;
+    border:2px solid #0a1929;
+    border-radius:10px;
+    box-shadow: 0 6px 0 #0a1929, 0 12px 24px rgba(0,0,0,.25);
+    min-width:38px; text-align:center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============================================================
+     THE BUTTON — single, huge, "Activate AI Agent"
+     ============================================================ */
+  #ai-btn{
+    margin-top:10px;
+    width: min(560px, 92vw);
+    height: 104px;
+    border:none;
+    border-radius:22px;
+    cursor:pointer;
+    color:#00170b;
+    font-weight:900;
+    letter-spacing:.20em;
+    font-size:36px;
+    background:
+      radial-gradient(circle at 30% 30%, #ffffff 0%, var(--neon-lime) 30%, #00c46b 80%);
+    box-shadow:
+      0 0 0 4px #003b22 inset,
+      0 20px 50px rgba(0,255,136,.45),
+      0 0 80px rgba(0,255,136,.7);
+    position:relative;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  #ai-btn:hover{ transform:translateY(-2px) scale(1.01); }
+  #ai-btn:active{ transform:translateY(1px) scale(.99); }
+  #ai-btn .coin{
+    position:absolute; left:22px; top:50%; transform:translateY(-50%);
+    width:42px; height:42px;
+    color:#003b22;
+  }
+  #ai-btn .corner{
+    position:absolute; font-size:11px; opacity:.7; letter-spacing:.25em; font-weight:700;
+  }
+  #ai-btn .corner.tl{ top:10px; left:78px; }
+  #ai-btn .corner.br{ bottom:10px; right:22px; }
+  #ai-btn.off{
+    background: radial-gradient(circle at 30% 30%, #ffffff, #d6ebff 60%, #aacfee);
+    color:#0a1929;
+    box-shadow:
+      0 0 0 4px #355c80 inset,
+      0 20px 50px rgba(10,25,41,.18);
+  }
+  /* ----------  2× SPEED BUTTON  (smaller, amber turbo) -------------- */
+  .speed-btn{
+    margin-top:-8px;
+    width: 220px;
+    height: 64px;
+    border:none;
+    border-radius:16px;
+    cursor:pointer;
+    color:#3a1f00;
+    font-weight:900;
+    letter-spacing:.20em;
+    font-size:22px;
+    background: radial-gradient(circle at 30% 30%, #ffffff, #e8b072 60%, #c08840);
+    box-shadow:
+      0 0 0 3px #5d3914 inset,
+      0 12px 28px rgba(180,100,30,.25);
+    position:relative;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .speed-btn:hover{ transform:translateY(-2px) scale(1.01); }
+  .speed-btn.active{
+    background: radial-gradient(circle at 30% 30%, #ffffff, #ffe085 30%, #ffc62e);
+    color: #4a2c00;
+    box-shadow:
+      0 0 0 3px #664400 inset,
+      0 12px 28px rgba(255,200,0,.55),
+      0 0 50px rgba(255,200,0,.65);
+  }
+  .speed-btn .corner{
+    position:absolute; font-size:10px; opacity:.7; letter-spacing:.22em; font-weight:700;
+  }
+  .speed-btn .corner.tl{ top:8px;  left:14px; }
+  .speed-btn .corner.br{ bottom:8px; right:14px; }
+  /* Tiny status text under the button */
+  #status{
+    color:#0a1929;
+    font-size:13px;
+    letter-spacing:.20em;
+    font-weight:700;
+    opacity:.78;
+    text-align:center;
+  }
+  #status b{ color:#003b22; }
+
+  /* ============================================================
+     CANONICAL GAME OVER PANEL — drawn INSIDE the game canvas,
+     not floating over the page. Matches the dong-nguyen mobile
+     clone: orange chunky "GAME OVER" title, cream scoreboard
+     with MEDAL · SCORE · BEST, and a brown OK button.
+     ============================================================ */
+  .veil{
+    position:absolute; inset:8px;
+    background:rgba(0,0,0,.50);
+    border-radius:2px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    color:#fff; z-index:9;
+    backdrop-filter: blur(2px);
+    pointer-events:auto;
+    overflow:hidden;
+  }
+  /* Big chunky title that flips between READY and GAME OVER */
+  .go-title{
+    margin:0; padding:0;
+    font-size:46px; font-weight:900; letter-spacing:.10em;
+    text-align:center;
+  }
+  .veil.is-ready .go-title{
+    color:#ffffff;
+    text-shadow: 0 2px 0 #000, 0 4px 0 rgba(0,0,0,.3);
+  }
+  .veil.is-over .go-title{
+    color:#ffba51;
+    text-shadow:
+      0 2px 0 #ffffff,
+      0 4px 0 #6e3b15,
+      0 6px 0 rgba(0,0,0,.45);
+  }
+  /* READY hint line that bobs above the panel */
+  .go-hint{
+    margin-top:10px;
+    font-size:13px; font-weight:800; letter-spacing:.22em;
+    text-shadow: 0 1px 0 rgba(0,0,0,.6);
+    text-align:center;
+    animation: bob 1.4s ease-in-out infinite;
+    line-height:1.6;
+  }
+  @keyframes bob{ 50%{ transform:translateY(-5px); } }
+  .veil.is-over .go-hint{ display:none; }
+
+  /* The cream-colored SCOREBOARD PANEL — only shown on game over */
+  .go-panel{
+    display:none;
+    margin-top:18px;
+    background:#fdf3d0;
+    border:3px solid #553210;
+    border-radius:14px;
+    padding:14px 18px;
+    min-width:232px;
+    box-shadow:
+      0 6px 0 #553210,
+      0 0 0 2px rgba(0,0,0,.18);
+  }
+  .veil.is-over .go-panel{ display:block; }
+
+  .go-row{
+    display:grid;
+    grid-template-columns: 70px 1fr;
+    align-items:center;
+    gap:12px;
+  }
+  /* MEDAL icon — a chunky gold disc with a star */
+  .go-medal{
+    position:relative;
+    width:58px; height:58px;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff4a6 0%, #ffba51 55%, #b97a18 100%);
+    border:3px solid #553210;
+    box-shadow:
+      inset 0 -4px 6px rgba(0,0,0,.35),
+      inset 0 3px 4px rgba(255,255,255,.55),
+      0 3px 0 #553210;
+  }
+  .go-medal::before{
+    content:"\2605";
+    position:absolute;
+    inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color:#553210;
+    font-size:32px; font-weight:900;
+    text-shadow: 0 1px 0 rgba(255,255,255,.45);
+  }
+  .go-scores{
+    display:flex; flex-direction:column; gap:6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .go-scores .lab{
+    font-size:11px; letter-spacing:.20em; font-weight:800;
+    color:#553210;
+  }
+  .go-scores .val{
+    font-size:24px; line-height:1; font-weight:900;
+    color:#222;
+    text-align:right;
+  }
+  .go-line{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:5px 4px;
+    border-bottom:1px dashed rgba(85,50,16,.25);
+  }
+  .go-line:last-child{ border-bottom:none; }
+
+  /* OK / RESTART button — chunky brown/orange like the real mobile clone */
+  .go-btn{
+    display:none;
+    margin-top:18px;
+    padding:11px 30px;
+    border:none;
+    border-radius:10px;
+    background: linear-gradient(180deg, #ffae3a 0%, #d97344 100%);
+    color:#3d1e08;
+    font-weight:900; letter-spacing:.20em;
+    font-size:22px;
+    cursor:pointer;
+    box-shadow:
+      0 4px 0 #6e3b15,
+      inset 0 2px 0 rgba(255,255,255,.55),
+      inset 0 -3px 0 rgba(0,0,0,.18);
+  }
+  .go-btn:hover{ transform:translateY(2px); box-shadow:0 2px 0 #6e3b15; }
+  .go-btn:active{ transform:translateY(4px); box-shadow:none; }
+  .veil.is-over .go-btn{ display:inline-block; }
+
+  /* Hide native focus outline but keep keyboard accessibility */
+  button:focus-visible{ outline:3px solid var(--neon-cyan); outline-offset:3px; }
+
+  /* ============================================================
+     ARCADE SHELL — classic Flappy Bird presentation around the
+     original game canvas, with the AI telemetry kept visible.
+     ============================================================ */
+  body{
+    overflow:auto;
+    background:
+      linear-gradient(rgba(255,255,255,.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+      linear-gradient(180deg, #4aa8c6 0%, #8bd0d1 48%, #d5c98d 100%);
+    background-size:24px 24px, 24px 24px, auto;
+  }
+  #stage{
+    position:relative; inset:auto;
+    min-height:100vh;
+    width:min(1180px, 100%);
+    margin:0 auto;
+    padding:28px 28px 22px;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    gap:20px;
+    align-items:center;
+  }
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    padding:0 4px;
+  }
+  .brand-kicker{
+    margin:0 0 6px;
+    color:#e9ffff; font-size:11px; font-weight:900; letter-spacing:.28em;
+    text-shadow:0 2px 0 rgba(24,83,104,.35);
+  }
+  .brand-title{
+    margin:0; color:#fff; font-size:clamp(28px, 4vw, 48px); line-height:.95;
+    letter-spacing:.06em; text-shadow:0 3px 0 #2c687b, 0 7px 18px rgba(24,83,104,.28);
+  }
+  .brand-title span{ color:#ffe37b; }
+  .build-stamp{
+    padding:10px 13px; border:2px solid rgba(255,255,255,.62); border-radius:7px;
+    color:#eaffff; background:rgba(18,82,104,.26); font-size:10px; font-weight:800;
+    letter-spacing:.12em; line-height:1.5; text-align:right; box-shadow:inset 0 1px rgba(255,255,255,.22);
+  }
+  .app-shell{
+    display:grid; grid-template-columns:minmax(300px, 430px) minmax(300px, 1fr);
+    gap:28px; align-items:center; justify-content:center;
+  }
+  .play-column{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .game{
+    padding:8px; border-radius:8px;
+    background:#2b5966;
+    box-shadow:0 9px 0 #173d49, 0 22px 45px rgba(18,67,82,.34), 0 0 0 2px rgba(255,255,255,.22) inset;
+  }
+  canvas#game, canvas#overlay{
+    width:min(70vw, 390px); border-radius:2px;
+  }
+  canvas#game{ box-shadow:inset 0 0 0 2px rgba(0,0,0,.18); }
+  canvas#overlay{ left:8px; top:8px; }
+  .game-caption{
+    display:flex; align-items:center; gap:9px; color:#164758; font-size:10px; font-weight:900;
+    letter-spacing:.14em; text-transform:uppercase;
+  }
+  .game-caption::before{ content:""; width:28px; height:2px; background:#ffe37b; box-shadow:0 0 0 1px rgba(20,74,87,.2); }
+  .game-caption .live-dot{ margin-left:7px; }
+  .agent-panel{
+    width:100%; max-width:520px; justify-self:start; padding:22px;
+    color:#e9fbff; background:linear-gradient(145deg, rgba(16,62,78,.96), rgba(18,43,61,.96));
+    border:2px solid rgba(167,239,243,.5); border-radius:8px;
+    box-shadow:0 8px 0 rgba(17,54,69,.42), 0 22px 48px rgba(13,57,76,.27), inset 0 1px rgba(255,255,255,.16);
+  }
+  .agent-panel-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:17px; border-bottom:1px solid rgba(169,231,237,.24); }
+  .panel-kicker{ margin:0 0 5px; color:#8eeef1; font-size:10px; font-weight:900; letter-spacing:.24em; }
+  .panel-title{ margin:0; color:#fff; font-size:24px; letter-spacing:.08em; }
+  .panel-state{ display:flex; align-items:center; gap:7px; color:#a8c8cf; font-size:10px; font-weight:900; letter-spacing:.13em; }
+  .live-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#9db8be; box-shadow:0 0 0 3px rgba(157,184,190,.15); }
+  .live-dot.on{ background:#7dff9c; box-shadow:0 0 0 3px rgba(125,255,156,.16), 0 0 14px #7dff9c; animation:blink 1.2s ease-in-out infinite; }
+  @keyframes blink{50%{opacity:.45}}
+  .telemetry-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:18px 0; }
+  .telemetry-cell{ padding:12px; background:rgba(4,25,37,.44); border:1px solid rgba(153,229,233,.2); border-radius:4px; }
+  .telemetry-cell .label{ display:block; color:#85b8c1; font-size:9px; font-weight:900; letter-spacing:.15em; }
+  .telemetry-cell .value{ display:block; margin-top:6px; color:#fff; font-size:19px; font-weight:900; letter-spacing:.04em; }
+  .telemetry-cell .value.green{ color:#7dff9c; }
+  .telemetry-cell .value.pink{ color:#ff79e7; }
+  .agent-copy{ margin:0 0 16px; color:#a9cbd0; font-size:11px; line-height:1.65; }
+  .line-legend{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; color:#c8e1e5; font-size:10px; font-weight:800; letter-spacing:.05em; }
+  .legend-swatch{ width:18px; height:3px; flex:none; box-shadow:0 0 8px currentColor; }
+  .legend-swatch.lime{ color:#00ff88; background:#00ff88; }
+  .legend-swatch.cyan{ color:#00e6ff; background:#00e6ff; }
+  .legend-swatch.pink{ color:#ff2bd6; background:#ff2bd6; }
+  .legend-swatch.amber{ color:#ffd000; background:#ffd000; }
+  .control-label{ margin:0 0 8px; color:#85b8c1; font-size:9px; font-weight:900; letter-spacing:.2em; }
+  #ai-btn{
+    width:100%; height:64px; margin:0; border-radius:4px; font-size:19px; letter-spacing:.13em;
+    background:linear-gradient(180deg, #b5ffbe 0%, #46d879 100%); box-shadow:0 4px 0 #197845, 0 0 25px rgba(69,233,126,.16), inset 0 0 0 2px #d8ffe0;
+  }
+  #ai-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 0 #197845, 0 0 32px rgba(69,233,126,.28), inset 0 0 0 2px #d8ffe0; }
+  #ai-btn.off{ background:linear-gradient(180deg, #f3ffff 0%, #9fc6ca 100%); box-shadow:0 4px 0 #2c6470, inset 0 0 0 2px #fff; }
+  #ai-btn .coin{ width:27px; height:27px; left:15px; }
+  #ai-btn .corner.tl{ top:7px; left:54px; font-size:8px; }
+  #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
+  .control-row{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
+  .speed-btn{ width:100%; height:45px; margin:0; border-radius:4px; font-size:15px; box-shadow:0 3px 0 #76501e, inset 0 0 0 2px #ffe9ad; }
+  .speed-btn.active{ box-shadow:0 3px 0 #76501e, 0 0 20px rgba(255,200,0,.35), inset 0 0 0 2px #fff4bf; }
+  .speed-btn .corner{ font-size:7px; }
+  .speed-btn .corner.tl{ top:6px; left:9px; } .speed-btn .corner.br{ bottom:6px; right:9px; }
+  .manual-btn{ height:45px; border:0; border-radius:4px; color:#d9f5f7; background:#214e5d; box-shadow:0 3px 0 #123642; font:900 12px ui-monospace,monospace; letter-spacing:.1em; cursor:pointer; }
+  .manual-btn:hover{ background:#2b6474; transform:translateY(-1px); }
+  #status{ margin-top:16px; color:#85b8c1; font-size:9px; line-height:1.6; letter-spacing:.11em; }
+  #status b{ color:#ffe37b; }
+  .credits{ display:flex; justify-content:space-between; gap:14px; padding:12px 4px 0; border-top:1px solid rgba(255,255,255,.28); color:#245a6a; font-size:10px; line-height:1.5; letter-spacing:.04em; }
+  .credits a{ color:#164758; font-weight:900; }
+  .credits strong{ color:#164758; }
+  @media (max-width:800px){
+    #stage{ padding:20px 16px; gap:16px; }
+    .topbar{ align-items:flex-start; } .build-stamp{ display:none; }
+    .app-shell{ grid-template-columns:1fr; gap:20px; }
+    .agent-panel{ justify-self:center; max-width:430px; }
+    canvas#game, canvas#overlay{ width:min(80vw, 350px); }
+    .credits{ flex-direction:column; gap:5px; }
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <header class="topbar">
+      <div>
+        <p class="brand-kicker">OPEN-SOURCE ARCADE LAB · 01</p>
+        <h1 class="brand-title">FLAPPY <span>AI</span></h1>
+      </div>
+      <div class="build-stamp">CANVAS BUILD<br>AGENT TELEMETRY ONLINE</div>
+    </header>
+
+    <main class="app-shell">
+      <section class="play-column" aria-label="Flappy Bird game">
+        <div class="game">
+          <canvas id="game" width="288" height="512"></canvas>
+          <canvas id="overlay" width="288" height="512"></canvas>
+
+          <div class="score-strip" id="scoreStrip" aria-label="score"></div>
+
+          <div class="veil is-ready" id="veil">
+            <h2 class="go-title" id="goTitle">READY</h2>
+            <div class="go-hint" id="goHint">
+              PRESS SPACE OR TAP TO FLAP<br>
+              <span style="opacity:.75">or engage the agent console</span>
+            </div>
+            <div class="go-panel" id="goPanel">
+              <div class="go-row">
+                <span class="go-medal" aria-label="medal"></span>
+                <div class="go-scores">
+                  <div class="go-line"><span class="lab">SCORE</span><span class="val" id="goScore">000</span></div>
+                  <div class="go-line"><span class="lab">BEST</span> <span class="val" id="goBest">000</span></div>
+                </div>
+              </div>
+            </div>
+            <button class="go-btn" id="goBtn" type="button">OK</button>
+          </div>
+        </div>
+        <div class="game-caption"><span class="live-dot on"></span> PLAYFIELD / LIVE SENSOR LINES</div>
+      </section>
+
+      <aside class="agent-panel" aria-label="AI agent console">
+        <div class="agent-panel-header">
+          <div><p class="panel-kicker">CONTROL SURFACE</p><h2 class="panel-title">AI AGENT</h2></div>
+          <div class="panel-state"><span id="panelDot" class="live-dot"></span><span id="panelState">STANDBY</span></div>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-cell"><span class="label">RUN STATE</span><span class="value green" id="readoutState">READY</span></div>
+          <div class="telemetry-cell"><span class="label">DECISION</span><span class="value pink" id="readoutAction">HOLD</span></div>
+          <div class="telemetry-cell"><span class="label">SCORE</span><span class="value" id="readoutScore">000</span></div>
+          <div class="telemetry-cell"><span class="label">LEVEL</span><span class="value" id="readoutLevel">01</span></div>
+          <div class="telemetry-cell"><span class="label">GAP TARGET</span><span class="value" id="readoutTarget">—</span></div>
+          <div class="telemetry-cell"><span class="label">VERTICAL V</span><span class="value" id="readoutVelocity">0.00</span></div>
+        </div>
+        <p class="agent-copy">The agent reads the next pipe gap, predicts the bird's arc, and chooses <strong>FLAP</strong> or <strong>HOLD</strong>. The colored lines stay on the playfield so you can see the decision in real time.</p>
+        <div class="line-legend" aria-label="agent line legend">
+          <div class="legend-item"><span class="legend-swatch lime"></span>BIRD DETECT</div>
+          <div class="legend-item"><span class="legend-swatch cyan"></span>GAP WINDOW</div>
+          <div class="legend-item"><span class="legend-swatch pink"></span>DELTA LINE</div>
+          <div class="legend-item"><span class="legend-swatch amber"></span>TARGET BAND</div>
+        </div>
+        <p class="control-label">PRIMARY CONTROL</p>
+        <button id="ai-btn" aria-pressed="false">
+          <svg class="coin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-13h-7l1-7z"/></svg>
+          <span class="corner tl">AI · AGENT</span><span id="aiLabel">🤖 ENGAGE AGENT</span><span class="corner br" id="aiStat">STANDBY</span>
+        </button>
+        <div class="control-row">
+          <button id="speed-btn" class="speed-btn" aria-pressed="false" title="Toggle 2× speed"><span class="corner tl">TURBO</span><span id="speedLabel">1×</span><span class="corner br" id="speedStat">NORMAL</span></button>
+          <button class="manual-btn" id="manual-btn" type="button">MANUAL MODE</button>
+        </div>
+        <div id="status">SPACE = FLAP · <b>F</b> = TOGGLE AI · <b>2</b> = 2× SPEED · <b>R</b> = RESTART</div>
+      </aside>
+    </main>
+
+    <footer class="credits">
+      <span>Inspired by <strong>Flappy Bird</strong> by Dong Nguyen / GEARS Studios.</span>
+      <span>Community reference: <a href="https://github.com/topics/flappy-bird-game-code" target="_blank" rel="noreferrer">GitHub · flappy-bird-game-code</a> · MIT</span>
+    </footer>
+  </div>
+
+<!-- ============================================================ -->
+<!--                 GAME + AI + RENDERING                          -->
+<!-- ============================================================ -->
+<script>
+const GW = 288, GH = 512;
+const GROUND_H = 80;
+const GRAV = 0.45, FLAP = -7.4, MAX_VY = 9.5;
+const PIPE_W = 52, PIPE_GAP = 140, SPEED = 2.4;
+
+const STATE = {
+  bird: { x: 80, y: 220, vy: 0, r: 12 },
+  pipes: [], groundX: 0,
+  running:false, overlord:false, dying:false, gameOver:false,
+  score:0, flapCount:0,
+  speed: 1,                       // 1× normal, 2× turbo
+  lastLevel: 1, levelUpAt: 0,     // level-progression tracking (display + flash)
+};
+
+const game     = document.getElementById('game');
+const gctx     = game.getContext('2d');
+const overlay  = document.getElementById('overlay');
+const octx     = overlay.getContext('2d');
+const veiEl    = document.getElementById('veil');
+const aiBtn    = document.getElementById('ai-btn');
+const aiLabel  = document.getElementById('aiLabel');
+const aiStat   = document.getElementById('aiStat');
+const panelDot = document.getElementById('panelDot');
+const panelState = document.getElementById('panelState');
+const readoutState = document.getElementById('readoutState');
+const readoutAction = document.getElementById('readoutAction');
+const readoutScore = document.getElementById('readoutScore');
+const readoutLevel = document.getElementById('readoutLevel');
+const readoutTarget = document.getElementById('readoutTarget');
+const readoutVelocity = document.getElementById('readoutVelocity');
+const manualBtn = document.getElementById('manual-btn');
+
+/* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
+                the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
+const COL = {
+  // sky — canonical Flappy Bird light-blue fill
+  bgSky:'#70C5CE',
+  // city silhouette  (pale grey-blue, sits low behind bushes)
+  city:'rgba(168,196,205,.95)',
+  // mid-ground bushes  (pale sage, similar to official mobile clone)
+  bush:'rgba(150,196,108,.95)',
+  // pipes
+  pipe:'#73BF2E',          // vibrant body green — canonical Flappy Bird pipe
+  pipeLip:'#558B2F',       // darker cap green
+  pipeLipDk:'#33691E',     // outline + step accent
+  pipeShine:'rgba(255,255,255,.14)',
+  // ground — green grass + tan dirt, canonical mobile-clone palette
+  grass:'#8BC34A', grassDk:'#689F38',
+  dirt:'#DED895', dirtDk:'#C8C27A',
+  // bird
+  birdBody:'#F8D437', birdBelly:'#FFFFFF',
+  birdWing:'#D89423', birdBeakT:'#F08421', birdBeakB:'#D86E10',
+  birdTail:'#E2A03A',
+};
+
+/* ----------  SCENE  ---------- */
+function drawScene(){
+  const byGround = GH - GROUND_H;
+
+  // sky — flat cyan fill (canonical Flappy Bird)
+  gctx.fillStyle = COL.bgSky;
+  gctx.fillRect(0, 0, GW, byGround);
+
+  // pixel-art clouds (slow horizontal drift)
+  gctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 3; i++){
+    const cx = (i * 130 + (STATE.groundX * 0.08)) % (GW + 100) - 50;
+    const cy = 80 + i * 55;
+    gctx.fillRect(cx,      cy, 28, 10);
+    gctx.fillRect(cx + 8,  cy - 6, 18, 10);
+  }
+
+  // distant city silhouette (slow parallax)
+  gctx.fillStyle = COL.city;
+  for (let i = -1; i < 8; i++){
+    const bx = (i * 54 + (STATE.groundX * 0.15)) % (GW + 60) - 4;
+    const seed = (i * 11 + 5) % 19;
+    const bh  = 24 + seed;
+    const bw  = 32 + (seed % 10);
+    // terraced building (wider base, narrower upper)
+    gctx.fillRect(bx,       byGround - bh,      bw,     bh);
+    gctx.fillRect(bx - 4,   byGround - bh - 10, bw + 8, 12);
+    gctx.fillRect(bx + 2,   byGround - bh - 16, bw - 4, 8);
+    // lit windows
+    gctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let wy = byGround - bh + 6; wy < byGround - 10; wy += 14){
+      for (let wx = bx + 4; wx < bx + bw - 4; wx += 12){
+        gctx.fillRect(wx, wy, 4, 5);
+      }
+    }
+    gctx.fillStyle = COL.city;
+  }
+
+  // mid-ground bushes — smooth bezier humps, flat base
+  gctx.fillStyle = COL.bush;
+  for (let i = -1; i < 5; i++){
+    const x = (i * 130 + (STATE.groundX * 0.45)) % (GW + 140) - 20;
+    const by = byGround;
+    gctx.beginPath();
+    gctx.moveTo(x, by);
+    // first hump
+    gctx.quadraticCurveTo(x + 20, by - 34, x + 48,  by - 10);
+    // second hump
+    gctx.quadraticCurveTo(x + 72, by - 28, x + 100, by - 6);
+    // third hump
+    gctx.quadraticCurveTo(x + 118, by - 18, x + 150, by);
+    gctx.closePath();
+    gctx.fill();
+  }
+
+  // pipes
+  for (const p of STATE.pipes){
+    const botY = p.gapY + p.gapH;
+    const botH = byGround - botY;
+    drawPipe(gctx, p.x, botY, PIPE_W, botH, false);
+    drawPipe(gctx, p.x, 0,     PIPE_W, p.gapY, true);
+  }
+
+  // ground — chevron / diagonal stripe pattern
+  const gy = byGround;
+  gctx.fillStyle = COL.grass;
+  gctx.fillRect(0, gy, GW, 12);
+  gctx.fillStyle = COL.grassDk;
+  // scrolling triangular chevron pips (canonical grass texture)
+  for (let i = (STATE.groundX % 12) - 12; i < GW + 12; i += 6){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 2);
+    gctx.lineTo(i + 3, gy + 10);
+    gctx.lineTo(i - 3, gy + 10);
+    gctx.closePath();
+    gctx.fill();
+  }
+  // dirt strip
+  gctx.fillStyle = COL.dirt;
+  gctx.fillRect(0, gy + 12, GW, GROUND_H - 12);
+  gctx.fillStyle = COL.dirtDk;
+  for (let i = (STATE.groundX % 14) - 14; i < GW + 14; i += 7){
+    gctx.beginPath();
+    gctx.moveTo(i,     gy + 16);
+    gctx.lineTo(i + 2, gy + 22);
+    gctx.lineTo(i - 2, gy + 22);
+    gctx.closePath();
+    gctx.fill();
+  }
+}
+
+/* ----------  PIPE  (flat darker-stripe cap at closed end, no overhang, like real Flappy Bird) ---------- */
+function drawPipe(ctx, x, y, w, h, isTop){
+  const lipH = 22;
+  const over = 6;                  // cap overhangs body 6 px each side
+  if (h < lipH) return;
+
+  // The cap sits at the closed end — bottom for top pipe, top for bottom pipe.
+  const capY  = isTop ? y + h - lipH : y;
+  const bodyY = isTop ? y            : y + lipH;
+  const bodyH = h - lipH;
+  const capW  = w + over * 2;
+
+  // BODY (narrower than the cap)
+  ctx.fillStyle = COL.pipe;
+  ctx.fillRect(x + over, bodyY, w, bodyH);
+
+  // left-edge highlight on the body
+  ctx.fillStyle = COL.pipeShine;
+  ctx.fillRect(x + over + 1, bodyY, 4, bodyH);
+
+  // OVERHANGING CAP
+  ctx.fillStyle = COL.pipeLip;
+  ctx.fillRect(x, capY, capW, lipH);
+
+  // cap top highlight
+  ctx.fillStyle = COL.pipeShine;
+  ctx.fillRect(x, capY, capW, 2);
+
+  // dark accent at the cap/body seam
+  ctx.fillStyle = COL.pipeLipDk;
+  if (isTop) ctx.fillRect(x, capY + lipH - 2, capW, 2);
+  else       ctx.fillRect(x, capY,              capW, 2);
+
+  // right-edge shadow band on the cap
+  ctx.fillStyle = COL.pipeLipDk;
+  ctx.fillRect(x + capW - 4, capY + 2, 3, lipH - 4);
+}
+
+function drawBird(ctx, b, t){
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
+  ctx.rotate(tilt);
+  const cycle  = ((t/80)|0) % 3;
+  const PX = 3;   // pixel-block size
+
+  // Wing animation offset: up / rest / down
+  const wingDY = cycle === 1 ? -2*PX : (cycle === 2 ? PX : 0);
+
+  // ---- TAIL (5 dark-orange pixel blocks — three-spike fan behind body) ----
+  ctx.fillStyle = COL.birdTail;
+  ctx.fillRect(-5*PX, -1*PX, 2*PX, PX);          // top spike base
+  ctx.fillRect(-4*PX, -0*PX, PX, PX);           // top spike tip
+  ctx.fillRect(-5*PX,  1*PX, 2*PX, PX);          // middle spike
+  ctx.fillRect(-4*PX,  2*PX, PX, PX);           // bottom spike tip
+  ctx.fillRect(-4*PX,  3*PX, PX, PX);           // bottom spike base
+
+  // ---- BODY (chunky yellow oval — 7 rows of fillRect) ----
+  ctx.fillStyle = COL.birdBody;
+  ctx.fillRect(-1*PX, -3*PX, 4*PX, PX);          // row -3: narrow top
+  ctx.fillRect(-2*PX, -2*PX, 7*PX, PX);          // row -2: widening
+  ctx.fillRect(-3*PX, -1*PX, 9*PX, PX);          // row -1: widest (eye level)
+  ctx.fillRect(-3*PX,  0*PX, 9*PX, PX);          // row  0: center
+  ctx.fillRect(-3*PX,  1*PX, 9*PX, PX);          // row  1: center
+  ctx.fillRect(-2*PX,  2*PX, 7*PX, PX);          // row  2: narrowing
+  ctx.fillRect(-1*PX,  3*PX, 4*PX, PX);          // row  3: bottom
+
+  // ---- WHITE BELLY (lower-right of body) ----
+  ctx.fillStyle = COL.birdBelly;
+  ctx.fillRect( 0*PX,  1*PX, 5*PX, PX);
+  ctx.fillRect( 1*PX,  2*PX, 4*PX, PX);
+  ctx.fillRect( 2*PX,  3*PX, 2*PX, PX);
+
+  // ---- WING (tan, 5×2 block, animates up ↔ rest ↔ down) ----
+  ctx.fillStyle = COL.birdWing;
+  ctx.fillRect(-2*PX, 0*PX + wingDY, 5*PX, 2*PX);
+
+  // ---- EYE (round white circle with thick black ring + pupil — canonical look) ----
+  const ex = 2.3*PX, ey = -0*PX;
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(ex, ey, 2.3*PX, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  // pupil
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(ex + 0.6*PX, ey, 0.8*PX, 0, Math.PI*2);
+  ctx.fill();
+  // pupil shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(ex + 0.8*PX, ey - 0.2*PX, 0.25*PX, 0, Math.PI*2);
+  ctx.fill();
+
+  // ---- BEAK (oversized two-tone orange rectangle) ----
+  // upper beak (lighter orange)
+  ctx.fillStyle = COL.birdBeakT;
+  ctx.fillRect(5*PX, -1*PX, 5*PX, PX);
+  ctx.fillRect(6*PX,  0*PX, 4*PX, PX);
+  // lower beak (darker orange)
+  ctx.fillStyle = COL.birdBeakB;
+  ctx.fillRect(5*PX,  1*PX, 4*PX, PX);
+  ctx.fillRect(5*PX,  2*PX, 3*PX, PX);
+
+  ctx.restore();
+}
+
+/* ----------  GAME LOGIC  ---------- */
+function reset(){
+  STATE.bird = { x:80, y:220, vy:0, r:12 };
+  STATE.pipes = [];
+  STATE.score = 0; STATE.flapCount = 0; STATE.dying = false; STATE.gameOver = false;
+  STATE.pipes.push(makePipe(GW + 60));
+  STATE.pipes.push(makePipe(GW + 60 + 180));
+  setScore(0);
+}
+function makePipe(x){
+  const gapH = PIPE_GAP;
+  const minY = 60, maxY = (GH-GROUND_H)-gapH-60;
+  return { x, gapY: minY + Math.random()*(maxY-minY), gapH, passed:false };
+}
+function flap(){
+  if (!STATE.running) return;
+  // Only fire the impulse when the bird is falling (vy >= 0).
+  // If already rising from a prior flap, let it coast so gravity
+  // can accumulate and produce a natural ballistic arc. Without
+  // this guard, every frame's flap() resets vy to -7.4, the bird
+  // climbs linearly, then coasts into the canvas ceiling.
+  if (STATE.bird.vy < 0) return;
+  STATE.bird.vy = FLAP;
+  STATE.flapCount++;
+}
+/* ----------  HIGH SCORE MEMORY  (localStorage) ---------- */
+const BEST_KEY = 'flappy_ai_best_v1';
+function getBest(){
+  try { return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }
+  catch { return 0; }
+}
+function setBest(n){
+  try { localStorage.setItem(BEST_KEY, String(n)); } catch {}
+}
+
+function die(){
+  STATE.running = false; STATE.dying = true; STATE.gameOver = true;
+  STATE.dieVy = STATE.bird.vy;
+  obs.pipe = null;
+  pol = { ...NEUTRAL_POL };
+  // Populate the canonical score panel
+  const scoreText = String(STATE.score).padStart(3,'0');
+  const bestText  = String(getBest()).padStart(3,'0');
+  document.getElementById('goScore').textContent = scoreText;
+  document.getElementById('goBest').textContent  = bestText;
+  // Switch veil from READY → GAME OVER state
+  veiEl.style.display = 'flex';
+  veiEl.classList.remove('is-ready');
+  veiEl.classList.add('is-over');
+  document.getElementById('goTitle').textContent = 'GAME OVER';
+}
+
+function startGame(){
+  veiEl.classList.remove('is-over');
+  veiEl.classList.add('is-ready');
+  veiEl.style.display = 'none';
+  document.getElementById('goTitle').textContent = 'READY';
+  reset();
+  STATE.running = true; STATE.dying = false; STATE.gameOver = false;
+  // Reset the level-progression tracking so the bottom-right pill
+  // doesn't show a stale "LEVEL 9 · 0/200" after a restart.
+  STATE.lastLevel = 1;
+  STATE.levelUpAt = 0;
+}
+function step(){
+  if (!STATE.running) return;
+  STATE.bird.vy = Math.min(MAX_VY, STATE.bird.vy + GRAV);
+  STATE.bird.y += STATE.bird.vy;
+  for (const p of STATE.pipes) p.x -= SPEED;
+  STATE.groundX -= SPEED;
+  STATE.pipes = STATE.pipes.filter(p => p.x + PIPE_W > -10);
+  const last = STATE.pipes[STATE.pipes.length-1];
+  if (!last || last.x < GW-200) STATE.pipes.push(makePipe(GW+20));
+  for (const p of STATE.pipes){
+    if (!p.passed && p.x + PIPE_W < STATE.bird.x){
+      p.passed = true; setScore(STATE.score + 1);
+    }
+  }
+  if (STATE.bird.y > GH-GROUND_H-8 || STATE.bird.y < 8) die();
+  for (const p of STATE.pipes){
+    const inX = STATE.bird.x+STATE.bird.r > p.x+4 && STATE.bird.x-STATE.bird.r < p.x+PIPE_W-4;
+    if (!inX) continue;
+    if (STATE.bird.y-STATE.bird.r < p.gapY || STATE.bird.y+STATE.bird.r > p.gapY+p.gapH) die();
+  }
+}
+
+const SCORE_CELLS = [0,1,2].map(()=>{
+  const d = document.createElement('div'); d.className='dig'; d.textContent='0';
+  document.getElementById('scoreStrip').appendChild(d); return d;
+});
+function setScore(n){
+  STATE.score = n;
+  const s = String(n).padStart(3,'0');
+  for (let i=0;i<3;i++) SCORE_CELLS[i].textContent = s[i];
+  // Persist running best score live so the BEST line updates from frame 0
+  const cur = getBest();
+  if (n > cur){ setBest(n); }
+}
+
+/* ============================================================
+   AI: PIXEL DETECTION + POLICY (the "lines" on top of the screen)
+   ============================================================ */
+/* ------------------------------------------------------------
+   detect() — authoritative sensor reading for the AI.
+   Uses game state directly so the reading is up-to-date on every
+   sub-step (the gctx pixel buffer only rotates once per render
+   so a pixel-only reader lags at 2× speed). The visualisation
+   layer keeps its own gctx scan for the "advanced detection"
+   feel on the overlay canvas.
+   ------------------------------------------------------------ */
+function detect(){
+  let nextPipe = null;
+  for (const p of STATE.pipes){
+    // The geometric boundary is aligned with step()'s inX collision
+    // box. NO `!p.passed` guard here — that was the fatal race: the
+    // pipe gets scored at p.x < 28 but the bird's body overlaps it
+    // until p.x < 20. If we drop the pipe at p.x=28, the AI targets
+    // the next pipe while still inside the current one, fires a flap
+    // that clips the upper lip, and dies. Now we keep the pipe as
+    // long as the bird actually sits inside it.
+    if (p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r){
+      nextPipe = p; break;
+    }
+  }
+  const gapTop = nextPipe ? nextPipe.gapY      : 0;
+  const gapBot = nextPipe ? nextPipe.gapY + nextPipe.gapH : 0;
+  return {
+    birdX:  STATE.bird.x,
+    birdY:  STATE.bird.y,
+    birdVy: STATE.bird.vy,
+    gapTop, gapBot,
+    pipe:   nextPipe,
+  };
+}
+
+const NEUTRAL_POL = { action:false, jump:0, no:1, delta:0, thr:24, conf:0 };
+function policy(obs){
+  if (!obs.pipe) return { ...NEUTRAL_POL };
+  const birdR  = STATE.bird.r;
+  const gapTop = obs.gapTop;
+  const gapBot = obs.gapBot;
+  const mid    = (gapTop + gapBot) / 2;
+  // Post-flap rise in this physics (FLAP=-7.4, GRAV=0.45) is ~64 px:
+  //   rise = -FLAP*FLAP / (2*GRAV) - FLAP ~= (7.4*16.44) + 0.45*16.44*15.44/2 ~= 64 px
+  // If we aim at `mid`, the peak lands ~64 px above mid (= mid - 64).
+  // gap_top = mid - 70, so peak = mid - 64 collides with the upper pipe
+  // (peak's birdTop = mid - 76 < gapTop + 4 = mid - 66). Always dies.
+  //
+  // Fix: aim the controller at `mid + 24`. Flap occurs when birdY > mid+22,
+  // peak lands at mid + 22 - 64 = mid - 42 → top clear by 28 px → safe.
+  const target = mid + 24;
+  const delta  = obs.birdY - target;
+  let action   = delta > -2;          // 2-px preemptive
+  // Ceiling guards — never flap if we're about to punch into the upper pipe
+  // or the canvas top.
+  if (obs.birdY - birdR < gapTop + 6) action = false;
+  if (obs.birdY < 14)                 action = false;
+  const conf = 1;
+  return { action, jump:action?1:0, no:action?0:1, delta, thr:24, conf };
+}
+
+/* ------------------------------------------------------------
+   safetyFlapIfNeeded() — belt-and-suspenders guaranteed survival.
+   * If the bird is currently inside the next pipe's horizontal extent
+     AND is dangerously above the lower pipe (gap bottom), force a
+     flap upward — overrides the policy.
+   * Symmetric ceiling guard: if the bird ever clips above y<16,
+     null the upward velocity so it falls back into the gap.
+   This hard guarantee + the proportional policy = the bird can
+   never reach a state that triggers die().
+   ------------------------------------------------------------ */
+function safetyFlapIfNeeded(obs){
+  if (!obs.pipe) return;
+  const birdR  = STATE.bird.r;
+  const lowSafe = 6;
+  const upSafe  = 6;
+  // Stays narrow: only act when the bird's body actually overlaps the pipe.
+  if (STATE.bird.x + birdR <= obs.pipe.x)             return;  // entirely left of pipe
+  if (STATE.bird.x - birdR >= obs.pipe.x + PIPE_W)    return;  // entirely right of pipe
+
+  // LOWER-pipe emergency: flap if we're about to smash into the bottom pipe.
+  if (STATE.bird.y + birdR > obs.gapBot - lowSafe){
+    STATE.bird.vy = FLAP;
+    STATE.flapCount++;
+    return;
+  }
+  // UPPER-pipe emergency: damp any upward velocity so the bird stops
+  // rising before its top edge clips the upper pipe.
+  if (STATE.bird.y - birdR < obs.gapTop + upSafe){
+    STATE.bird.vy = Math.max(STATE.bird.vy, 0);
+  }
+}
+
+/* ============================================================
+   OVERLAY = the "lines on top of the screen"
+   - thick neon detection boxes around bird + gap
+   - magenta Δ-arrow from gap-mid to bird
+   - amber threshold band on the right of the pipe (target zone)
+   - giant "FLAP" banner that pulses when the AI jumps
+   ============================================================ */
+function clearOverlay(){ octx.clearRect(0,0,GW,GH); }
+
+function drawOverlay(obs, pol, t){
+  clearOverlay();
+
+  // ---- BIRD detection box (lime) -------------------------------------------------
+  {
+    const x = obs.birdX - 16, y = obs.birdY - 16, w = 32, h = 32;
+    glowRect(octx, x, y, w, h, '#00ff88', 3);
+    cornerTicks(octx, x, y, w, h, '#00ff88', 8, 2);
+  }
+
+  // ---- PIPE GAP detection box (cyan) ---------------------------------------------
+  if (obs.pipe){
+    const x = obs.pipe.x - 2;
+    const y = obs.gapTop;
+    const w = PIPE_W + 12;  // matches the visual cap width (6 px overhang each side)
+    const h = Math.max(20, obs.gapBot - obs.gapTop);
+    glowRect(octx, x, y, w, h, '#00e6ff', 3);
+    cornerTicks(octx, x, y, w, h, '#00e6ff', 8, 2);
+    miniTag(octx, x, y + h + 6, 'GAP', Math.round(h)+'px', '#00e6ff');
+
+    const mid = (obs.gapTop + obs.gapBot)/2;
+    const midFromTop = Math.round(mid);
+
+    // dashed cyan crosshair through the gap-mid spanning the whole screen
+    octx.save();
+    octx.setLineDash([4,4]); octx.lineWidth = 1;
+    octx.strokeStyle = 'rgba(0,230,255,.55)';
+    octx.beginPath(); octx.moveTo(0, mid); octx.lineTo(GW, mid); octx.stroke();
+    octx.restore();
+
+    // ---- PINK Δ-arrow from gap-mid to bird  (THE "line that does it") -------------
+    const birdY = obs.birdY;
+    const ax = obs.birdX + 30;
+    octx.strokeStyle = 'rgba(255,43,214,.85)';
+    octx.lineWidth = 4;
+    octx.lineCap = 'round';
+    octx.beginPath(); octx.moveTo(ax, mid); octx.lineTo(ax, birdY); octx.stroke();
+    // inner thin white core
+    octx.strokeStyle = 'rgba(255,255,255,.85)';
+    octx.lineWidth = 1;
+    octx.beginPath(); octx.moveTo(ax, mid); octx.lineTo(ax, birdY); octx.stroke();
+    // arrow head
+    const dir = Math.sign(birdY - mid);
+    octx.fillStyle = '#ff2bd6';
+    octx.beginPath();
+    if (dir > 0){
+      octx.moveTo(ax,birdY-3);  octx.lineTo(ax-5,birdY-10); octx.lineTo(ax+5,birdY-10);
+    } else {
+      octx.moveTo(ax,birdY+3);  octx.lineTo(ax-5,birdY+10); octx.lineTo(ax+5,birdY+10);
+    }
+    octx.closePath(); octx.fill();
+    // SUBTLE Δ label tucked at the top of the arrow
+    miniTag(octx, ax + 6, (mid+birdY)/2 - 7,
+      'Δ', (dir>0 ? '+' : '-') + Math.round(Math.abs(birdY-mid)) + 'px', '#ff2bd6');
+
+    // ---- AMBER threshold band (safe zone the AI aims at) --------------------------
+    const targetMid = mid + ( -obs.birdVy * 5 );
+    octx.save();
+    octx.globalCompositeOperation = 'screen';
+    octx.fillStyle = pol.action ? 'rgba(255,208,0,.18)' : 'rgba(0,230,255,.10)';
+    octx.fillRect(obs.pipe.x + PIPE_W + 4, targetMid - pol.thr/2, GW - (obs.pipe.x + PIPE_W + 4), pol.thr);
+    octx.strokeStyle = pol.action ? 'rgba(255,208,0,.55)' : 'rgba(0,230,255,.45)';
+    octx.setLineDash([3,3]); octx.lineWidth = 1.5;
+    octx.beginPath();
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid - pol.thr/2);
+    octx.lineTo(GW, targetMid - pol.thr/2);
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid + pol.thr/2);
+    octx.lineTo(GW, targetMid + pol.thr/2);
+    octx.stroke();
+    octx.setLineDash([]);
+    octx.strokeStyle = 'rgba(255,255,255,.6)'; octx.lineWidth = 1;
+    octx.beginPath();
+    octx.moveTo(obs.pipe.x + PIPE_W + 4, targetMid);
+    octx.lineTo(GW, targetMid);
+    octx.stroke();
+    octx.restore();
+  }
+
+  // ---- SUBTLE FLAP badge near the bird when the AI fires ------------------------
+  if (pol.action){
+    const pulse = 1 + 0.1 * Math.sin(t/60);
+    const bx = obs.birdX + 16, by = obs.birdY + 18;
+    octx.save();
+    octx.translate(bx + 18, by + 7);
+    octx.scale(pulse, pulse);
+    octx.translate(-(bx + 18), -(by + 7));
+    octx.fillStyle = 'rgba(0,255,136,.92)';
+    octx.fillRect(bx, by, 36, 14);
+    octx.strokeStyle = '#003b22'; octx.lineWidth = 1.5;
+    octx.strokeRect(bx+.5, by+.5, 35, 13);
+    octx.fillStyle = '#003b22';
+    octx.font = 'bold 11px ui-monospace, Menlo, monospace';
+    octx.textAlign = 'center'; octx.textBaseline = 'middle';
+    octx.fillText('FLAP', bx + 18, by + 8);
+    octx.restore();
+  }
+
+  // ---- SUBTLE bottom-left status pill (AI state + conf) -------------------------
+  // Anchored near the grass strip, well below the score row and away from gameplay.
+  octx.save();
+  octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+  octx.textAlign = 'left'; octx.textBaseline = 'top';
+  const statTxt = STATE.overlord
+    ? ('AI · conf ' + pol.conf.toFixed(2))
+    : 'manual';
+  const w = octx.measureText(statTxt).width + 14;
+  const pillY = GH - GROUND_H - 18;   // 18 px above the grass
+  octx.fillStyle = 'rgba(0,0,0,.45)';
+  octx.fillRect(8, pillY, w, 14);
+  octx.strokeStyle = STATE.overlord ? 'rgba(0,255,136,.7)' : 'rgba(255,255,255,.5)';
+  octx.lineWidth = 1; octx.strokeRect(8.5, pillY + .5, w - 1, 13);
+  octx.fillStyle = STATE.overlord ? '#00ff88' : '#dff5ff';
+  octx.fillText(statTxt, 14, pillY + 2);
+  octx.restore();
+
+  // ---- SUBTLE bottom-right LEVEL pill (pipes cleared → level)  -----------------
+  octx.save();
+  octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+  octx.textAlign = 'right'; octx.textBaseline = 'top';
+  const lvlTxt = 'LEVEL ' + STATE.lastLevel + ' · ' + STATE.score + '/200';
+  const lw = octx.measureText(lvlTxt).width + 14;
+  octx.fillStyle = 'rgba(0,0,0,.45)';
+  octx.fillRect(GW - lw - 8, pillY, lw, 14);
+  octx.strokeStyle = 'rgba(255,200,0,.75)';
+  octx.lineWidth = 1; octx.strokeRect(GW - lw - 8 + .5, pillY + .5, lw - 1, 13);
+  octx.fillStyle = '#ffd000';
+  octx.fillText(lvlTxt, GW - 14, pillY + 2);
+  octx.restore();
+
+  // ---- LEVEL-UP FLASH  (0.9s solid, 0.4s fade)  ---------------------------------
+  if (STATE.lastLevel > 1 && performance.now() - STATE.levelUpAt < 1300){
+    const elapsed = performance.now() - STATE.levelUpAt;
+    const opacity = elapsed < 900 ? 1 : Math.max(0, (1300 - elapsed) / 400);
+    octx.save();
+    octx.globalAlpha = opacity;
+    // Anchored top-center, well above the FLAP badge band (which sits
+    // beneath the bird at birdY+18) so a level-up never collides with it.
+    octx.translate(GW/2, GH/2 - 150);
+    octx.font = 'bold 38px ui-monospace, Menlo, monospace';
+    octx.textAlign = 'center'; octx.textBaseline = 'middle';
+    octx.shadowColor = '#ffd000'; octx.shadowBlur = 26;
+    octx.fillStyle = '#ffd000';
+    octx.fillText('LEVEL ' + STATE.lastLevel, 0, 0);
+    octx.shadowBlur = 0;
+    octx.font = 'bold 10px ui-monospace, Menlo, monospace';
+    octx.fillStyle = '#ffffff';
+    // Subline sits ABOVE the LEVEL text so it never visually masks
+    // the bird, which is typically at y≈130–150 immediately after
+    // a level boundary cross.
+    octx.fillText('UNBEATABLE AGENT', 0, -32);
+    octx.restore();
+  }
+}
+
+function glowRect(ctx,x,y,w,h,color,th){
+  ctx.save();
+  ctx.shadowColor = color; ctx.shadowBlur = 22;
+  ctx.strokeStyle = color; ctx.lineWidth = th;
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+function cornerTicks(ctx,x,y,w,h,color,len,th){
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth = th;
+  const segs = [
+    [x,y,x+len,y],[x,y,x,y+len],
+    [x+w-len,y,x+w,y],[x+w,y,x+w,y+len],
+    [x,y+h-len,x,y+h],[x,y+h,x+len,y+h],
+    [x+w,y+h-len,x+w,y+h],[x+w-len,y+h,x+w,y+h],
+  ];
+  ctx.beginPath();
+  for (const s of segs) ctx.moveTo(s[0],s[1]), ctx.lineTo(s[2],s[3]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* small two-line label:  KEY on top in dim ink,  VALUE below in bright color.
+   Designed to sit unobtrusively next to a detection box.                  */
+function miniTag(ctx,x,y,key,val,color){
+  ctx.save();
+  ctx.font = 'bold 9px ui-monospace, Menlo, monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  const wKey = ctx.measureText(key).width;
+  const wVal = ctx.measureText(val).width;
+  const w = Math.max(wKey, wVal) + 6;
+  ctx.fillRect(x - 2, y - 1, w, 22);
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  ctx.fillText(key.toUpperCase(), x + 1, y);
+  ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+  ctx.fillStyle = color;
+  ctx.fillText(val, x + 1, y + 9);
+  ctx.restore();
+}
+
+/* ----------  DYING FALL  ---------- */
+function dieDropStep(){
+  STATE.dieVy = Math.min(MAX_VY, (STATE.dieVy||0) + GRAV);
+  STATE.bird.y += STATE.dieVy;
+  STATE.bird.vy = STATE.dieVy;
+  if (STATE.bird.y > GH - GROUND_H - 8){
+    STATE.bird.y = GH - GROUND_H - 8;
+    STATE.dieVy = 0;
+    STATE.dying = false;
+  }
+}
+
+/* ----------  AI / OVERLAY STATE  ---------- */
+let obs = { birdY:0, birdX:80, birdVy:0, gapTop:0, gapBot:0, pipe:null };
+let pol = { ...NEUTRAL_POL };
+
+function updateTelemetry(){
+  const stateText = STATE.dying ? 'FALLING' : STATE.running ? (STATE.overlord ? 'RUNNING' : 'MANUAL') : STATE.gameOver ? 'GAME OVER' : 'READY';
+  const actionText = STATE.overlord ? (pol.action ? 'FLAP' : 'HOLD') : 'HOLD';
+  const target = obs.pipe ? Math.round((obs.gapTop + obs.gapBot) / 2) : null;
+  readoutState.textContent = stateText;
+  readoutAction.textContent = actionText;
+  readoutAction.style.color = pol.action ? '#7dff9c' : '#ff79e7';
+  readoutScore.textContent = String(STATE.score).padStart(3, '0');
+  readoutLevel.textContent = String(STATE.lastLevel).padStart(2, '0');
+  readoutTarget.textContent = target === null ? '—' : target + ' PX';
+  readoutVelocity.textContent = Number(STATE.bird.vy || 0).toFixed(2);
+  panelState.textContent = STATE.overlord ? 'AGENT ONLINE' : 'STANDBY';
+  panelDot.classList.toggle('on', STATE.overlord);
+}
+
+// ----------  LEVEL PROGRESSION  (1 level per 25 pipes; goal 200 = level 9) -------
+// lastLevel / levelUpAt now lives on STATE (declared in the STATE object above)
+
+/* ----------  INPUTS + AI BUTTON  ---------- */
+function setAi(on){
+  STATE.overlord = !!on;
+  aiBtn.classList.toggle('off', !on);
+  aiBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  aiLabel.textContent = on ? '🤖 A.I. ENGAGED' : '🤖 ENGAGE AGENT';
+  aiStat.textContent  = on ? 'RUNNING' : 'STANDBY';
+  updateTelemetry();
+  if (on && !STATE.running) startGame();
+}
+aiBtn.addEventListener('click', () => setAi(!STATE.overlord));
+
+/* ----------  SPEED BUTTON  ---------- */
+const speedBtn   = document.getElementById('speed-btn');
+const speedLabel = document.getElementById('speedLabel');
+const speedStat  = document.getElementById('speedStat');
+function setSpeed(mul){
+  STATE.speed = Math.max(1, mul|0);
+  const on = STATE.speed > 1;
+  speedBtn.classList.toggle('active', on);
+  speedBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  speedLabel.textContent = STATE.speed + '×';
+  speedStat.textContent  = on ? 'TURBO' : 'NORMAL';
+}
+speedBtn.addEventListener('click', () => setSpeed(STATE.speed === 1 ? 2 : 1));
+manualBtn.addEventListener('click', () => setAi(false));
+
+document.getElementById('goBtn').addEventListener('click', () => startGame());
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'Enter'){ e.preventDefault();
+    if (!STATE.running) startGame();
+    else flap();
+  }
+  if (e.code === 'KeyF')    setAi(!STATE.overlord);
+  if (e.code === 'KeyR')    startGame();
+  if (e.code === 'Digit2' || e.code === 'Numpad2') setSpeed(STATE.speed === 1 ? 2 : 1);
+});
+
+// restart-on-click anywhere on game area
+document.addEventListener('pointerdown', (e) => {
+  if (e.target && e.target.closest){
+    // Bypass on canvas click if it landed on the AI button, the speed button,
+    // or anything inside the GAME OVER / READY veil (OK button, medal, panel).
+    if (e.target.closest('.veil'))               return;
+    if (e.target.id === 'ai-btn')                return;
+    if (e.target.id === 'speed-btn')             return;
+    if (e.target.id === 'manual-btn')            return;
+    if (e.target.closest('.agent-panel'))        return;
+  }
+  if (!STATE.running) startGame();
+  else flap();    // flap() already guards `STATE.running` internally
+});
+
+/* ----------  MAIN LOOP  ---------- */
+/* ============================================================
+   MAIN LOOP — runs `STATE.speed` sub-steps per render frame.
+   The AI re-decides EVERY sub-step so 2× doesn't outpace it:
+   between sub-steps the canvas is unchanged, so the policy fires
+   with the same observation twice (giving two flap impulses on
+   back-to-back sub-steps if needed). That keeps the bird coupled
+   to the policy at any speed.
+   ============================================================ */
+function frame(t){
+  const speed = STATE.speed;
+  if (STATE.dying){
+    for (let s = 0; s < speed; s++) dieDropStep();
+  } else if (STATE.running && STATE.overlord){
+    for (let s = 0; s < speed; s++){
+      obs = detect();
+      pol = policy(obs);
+      if (pol.action) flap();
+      safetyFlapIfNeeded(obs);   // belt-and-suspenders insurance flap near pipe edges
+      step();
+    }
+  } else {
+    // human mode — passive observation once, then step `speed` times
+    for (let s = 0; s < speed; s++){
+      if (s === 0){
+        obs.birdX = STATE.bird.x;
+        obs.birdY = STATE.bird.y;
+        obs.birdVy = STATE.bird.vy;
+        const np = STATE.pipes.find(p => !p.passed && p.x + PIPE_W > STATE.bird.x);
+        if (np){
+          obs.pipe   = np;
+          obs.gapTop = np.gapY;
+          obs.gapBot = np.gapY + np.gapH;
+          pol = policy(obs);
+        } else {
+          obs.pipe = null;
+          obs.gapTop = 0;
+          obs.gapBot = 0;
+          pol = { ...NEUTRAL_POL };
+        }
+      }
+      step();
+    }
+  }
+  // ----- LEVEL progression check -----
+  const lvl = Math.floor(STATE.score / 25) + 1;
+  if (lvl > STATE.lastLevel){
+    STATE.lastLevel = lvl;
+    if (lvl > 1) STATE.levelUpAt = performance.now();   // level #1 is boot, don't flash
+  }
+  updateTelemetry();
+  drawScene();
+  drawBird(gctx, STATE.bird, t);
+  drawOverlay(obs, pol, t);
+  requestAnimationFrame(frame);
+}
+
+reset();
+STATE.running = false;
+setAi(false);
+updateTelemetry();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
