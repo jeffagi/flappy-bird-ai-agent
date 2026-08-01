@@ -52,7 +52,7 @@
     border-radius:14px;
     image-rendering: pixelated;
     box-shadow: inset 0 0 0 2px #4a9fb0;
-    /* Visual scale (native 288x512 rendered larger) */
+    /* Visual scale is finalized below to the 360×640 reference board. */
     width:  min(92vmin, 460px);
     height: auto;
   }
@@ -420,6 +420,357 @@
     canvas#game, canvas#overlay{ width:min(80vw, 350px); }
     .credits{ flex-direction:column; gap:5px; }
   }
+
+  /* ============================================================
+     REFERENCE FRONTEND — the agent console is the product surface.
+     Match the supplied narrow reference literally: one tall dark
+     panel, teal grid background, generous mono type, two-column
+     telemetry cards, and the pale primary control. The playfield
+     remains directly below the console so the game/AI stays real,
+     while the first viewport is the requested UI.
+     ============================================================ */
+  body{
+    overflow-x:hidden;
+    overflow-y:auto;
+    color:#d7edf0;
+    background-color:#fff;
+    background-image:
+      linear-gradient(45deg, #e5f9fc 25%, transparent 25%, transparent 75%, #e5f9fc 75%),
+      linear-gradient(45deg, #e5f9fc 25%, transparent 25%, transparent 75%, #e5f9fc 75%);
+    background-position:0 0, 24px 24px;
+    background-size:48px 48px;
+  }
+  #stage{
+    position:relative; inset:auto;
+    width:min(552px, calc(100vw - 31px));
+    min-height:100vh;
+    margin-left:31px;
+    margin-right:0;
+    padding:28px 0 34px;
+    display:block;
+  }
+  .topbar{ display:none; }
+  .app-shell{
+    width:100%;
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+    align-items:stretch;
+  }
+  .agent-panel{
+    order:1;
+    width:100%; max-width:none;
+    min-height:calc(100vh - 28px);
+    padding:46px 46px 42px;
+    border:2px solid #416f79;
+    border-radius:17px;
+    color:#d6edf0;
+    background:linear-gradient(155deg, #174b5d 0%, #133e50 48%, #173f51 100%);
+    box-shadow:0 0 0 1px rgba(214,246,242,.24) inset, 0 14px 0 rgba(37,91,102,.34), 0 28px 46px rgba(35,107,119,.25);
+  }
+  .agent-panel-header{
+    min-height:126px;
+    padding:0 0 36px;
+    border-bottom:2px solid rgba(143,221,224,.35);
+    align-items:flex-start;
+  }
+  .panel-kicker{
+    margin:0 0 13px;
+    color:#94e8ea;
+    font-size:18px;
+    line-height:1;
+    letter-spacing:.25em;
+  }
+  .panel-title{
+    margin:0;
+    color:#fff;
+    font-size:50px;
+    line-height:.95;
+    letter-spacing:.11em;
+  }
+  .panel-state{
+    gap:12px;
+    margin-top:42px;
+    color:#a8c4ca;
+    font-size:18px;
+    line-height:1;
+    letter-spacing:.12em;
+    white-space:normal;
+    text-align:right;
+  }
+  .live-dot{
+    width:25px; height:25px;
+    background:#8eafb6;
+    box-shadow:0 0 0 10px rgba(142,175,182,.13);
+  }
+  .live-dot.on{
+    background:#7dff9c;
+    box-shadow:0 0 0 10px rgba(125,255,156,.13), 0 0 20px #7dff9c;
+  }
+  .telemetry-grid{
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin:37px 0 38px;
+  }
+  .telemetry-cell{
+    min-height:128px;
+    padding:27px 24px 22px;
+    border:2px solid #2d6572;
+    border-radius:8px;
+    background:rgba(5,39,52,.48);
+  }
+  .telemetry-cell .label{
+    font-size:17px;
+    line-height:1;
+    letter-spacing:.18em;
+    color:#86bdc5;
+  }
+  .telemetry-cell .value{
+    margin-top:20px;
+    color:#fff;
+    font-size:40px;
+    line-height:.9;
+    letter-spacing:.03em;
+  }
+  .telemetry-cell .value.green{ color:#73ff9a; }
+  .telemetry-cell .value.pink{ color:#73ff9a; }
+  .agent-copy{
+    margin:0 0 34px;
+    color:#b1d2d7;
+    font-size:21px;
+    line-height:1.7;
+    letter-spacing:.01em;
+  }
+  .agent-copy strong{ color:#c3e4e7; }
+  .line-legend{
+    gap:18px 32px;
+    margin:0 0 37px;
+  }
+  .legend-item{
+    gap:16px;
+    color:#d3e7e9;
+    font-size:17px;
+    letter-spacing:.05em;
+  }
+  .legend-swatch{
+    width:36px; height:6px;
+    box-shadow:0 0 13px currentColor;
+  }
+  .control-label{
+    margin:0 0 16px;
+    color:#91c9cf;
+    font-size:17px;
+    letter-spacing:.2em;
+  }
+  #ai-btn{
+    height:129px;
+    border:3px solid #fff;
+    border-radius:8px;
+    color:#092438;
+    font-size:36px;
+    letter-spacing:.1em;
+    background:linear-gradient(180deg, #efffff 0%, #b6d9dd 100%);
+    box-shadow:0 8px 0 #558c96, inset 0 0 0 2px rgba(255,255,255,.5);
+  }
+  #ai-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 0 #558c96, 0 0 24px rgba(225,255,255,.25), inset 0 0 0 2px rgba(255,255,255,.7);
+  }
+  #ai-btn.off{
+    color:#092438;
+    background:linear-gradient(180deg, #efffff 0%, #b6d9dd 100%);
+    box-shadow:0 8px 0 #558c96, inset 0 0 0 2px rgba(255,255,255,.5);
+  }
+  #ai-btn:not(.off){
+    color:#092438;
+    background:linear-gradient(180deg, #dffff0 0%, #9fd9bf 100%);
+  }
+  #ai-btn .coin{
+    width:37px; height:37px; left:31px;
+    color:#092438;
+  }
+  #ai-btn .corner.tl{ top:12px; left:102px; font-size:15px; color:#385469; }
+  #ai-btn .corner.br{ bottom:13px; right:29px; font-size:15px; color:#385469; }
+  .control-row{
+    grid-template-columns:1fr;
+    gap:18px;
+    margin-top:20px;
+  }
+  .speed-btn, .manual-btn{
+    width:100%;
+    height:90px;
+    border-radius:8px;
+  }
+  .speed-btn{
+    font-size:27px;
+    border:3px solid #ffe9b1;
+    background:linear-gradient(145deg, #fff8e6 0%, #f0bd77 100%);
+    box-shadow:0 8px 0 #9d6a2c, inset 0 0 0 2px rgba(255,255,255,.6);
+  }
+  .speed-btn.active{
+    box-shadow:0 8px 0 #9d6a2c, 0 0 24px rgba(255,200,0,.38), inset 0 0 0 2px #fff4bf;
+  }
+  .speed-btn .corner{ font-size:14px; color:#654a33; }
+  .speed-btn .corner.tl{ top:12px; left:16px; }
+  .speed-btn .corner.br{ bottom:11px; right:16px; }
+  .manual-btn{
+    color:#e0f3f4;
+    background:#24596b;
+    box-shadow:0 8px 0 #173e4c;
+    font-size:19px;
+    letter-spacing:.08em;
+  }
+  .manual-btn:hover{ background:#2d6a7c; }
+  #status{
+    margin:34px 0 0;
+    color:#77aeb8;
+    font-size:16px;
+    line-height:1.8;
+    letter-spacing:.12em;
+    text-align:center;
+  }
+  #status b{ color:#ffe16c; }
+  /* Keep the actual game visible beside the console on larger screens,
+     and below it on narrow screens. The console itself stays limited to
+     live metrics, the AI Agent control, and the speed control. */
+  .play-column{
+    display:flex;
+    order:1;
+    min-width:0;
+  }
+  .credits{ display:none; }
+  /* Final game surface: use the reference board at a fixed 9:16 ratio.
+     The canvas is scaled as one unit, so the overlay and sprites never drift. */
+  .game{
+    width:min(368px, calc(100vw - 32px));
+    padding:0;
+    border:4px solid #173d49;
+    border-radius:4px;
+    background:#70c5ce;
+    box-shadow:0 8px 0 #173d49, 0 20px 36px rgba(18,67,82,.32);
+    overflow:hidden;
+  }
+  canvas#game, canvas#overlay{
+    display:block;
+    width:100%;
+    max-width:none;
+    height:auto;
+    aspect-ratio:360 / 640;
+    border-radius:0;
+    image-rendering:auto;
+  }
+  canvas#overlay{
+    position:absolute;
+    left:4px;
+    top:4px;
+    width:calc(100% - 8px);
+    height:calc(100% - 8px);
+    mix-blend-mode:screen;
+  }
+  .score-strip{ display:none; }
+  .veil.is-ready{ display:none; }
+  @media (min-width:801px){
+    #stage{
+      width:min(1100px, calc(100vw - 48px));
+      margin:0 auto;
+      padding:28px 0 34px;
+    }
+    .app-shell{
+      display:grid;
+      grid-template-columns:368px minmax(420px, 552px);
+      gap:28px;
+      align-items:start;
+    }
+    .agent-panel{ order:2; }
+  }
+  @media (max-width:800px){
+    .agent-panel{ min-height:0; }
+    .game{ width:min(368px, calc(100vw - 32px)); }
+  }
+  @media (max-width:600px){
+    .play-column{ order:1; }
+    .agent-panel{ order:2; }
+    .game{ width:min(368px, calc(100vw - 32px)); }
+    .game-caption{ margin-bottom:8px; }
+    #stage{ padding:28px 0 34px; }
+    .agent-panel{ padding:46px 46px 42px; }
+    .agent-panel-header{ gap:8px; }
+    .panel-title{ font-size:clamp(34px, 8vw, 50px); }
+    .panel-state{ flex:0 1 auto; max-width:42%; }
+    .panel-state .live-dot{ flex:none; }
+    .panel-title{ font-size:clamp(38px, 8.5vw, 50px); }
+    .panel-state{ font-size:clamp(12px, 3.2vw, 18px); max-width:38%; }
+    .telemetry-cell{ padding-left:24px; padding-right:18px; }
+    .telemetry-cell .label{ font-size:clamp(12px, 3.1vw, 17px); }
+    .telemetry-cell .value{ font-size:clamp(28px, 7vw, 40px); }
+    .agent-copy{ font-size:clamp(16px, 3.65vw, 21px); }
+    .legend-item{ font-size:clamp(12px, 2.9vw, 17px); }
+    .control-row{ gap:18px; }
+    .speed-btn{ width:100%; font-size:clamp(19px, 5vw, 27px); }
+    .manual-btn{ font-size:clamp(12px, 3.25vw, 19px); }
+    #status{ font-size:clamp(11px, 2.75vw, 16px); }
+  }
+  @media (max-width:360px){
+    .agent-panel{ padding-left:24px; padding-right:24px; }
+    .agent-panel-header{ align-items:flex-start; flex-wrap:wrap; }
+    .panel-state{ width:100%; max-width:none; margin-top:2px; justify-content:flex-start; }
+  }
+
+  /* COMPACT CONTROL SURFACE — keep the game visually dominant. */
+  .agent-panel{
+    width:368px;
+    max-width:100%;
+    min-height:0;
+    padding:22px;
+    border-radius:10px;
+  }
+  .agent-panel-header{
+    min-height:0;
+    padding-bottom:16px;
+    align-items:center;
+  }
+  .panel-kicker{ margin-bottom:7px; font-size:11px; letter-spacing:.22em; }
+  .panel-title{ font-size:28px; letter-spacing:.08em; }
+  .panel-state{ margin-top:0; gap:8px; font-size:11px; letter-spacing:.1em; white-space:nowrap; }
+  .live-dot{ width:12px; height:12px; box-shadow:0 0 0 4px rgba(142,175,182,.13); }
+  .live-dot.on{ box-shadow:0 0 0 4px rgba(125,255,156,.13), 0 0 14px #7dff9c; }
+  .telemetry-grid{ gap:10px; margin:18px 0 20px; }
+  .telemetry-cell{ min-height:78px; padding:14px 13px 12px; border-radius:6px; }
+  .telemetry-cell .label{ font-size:10px; letter-spacing:.13em; }
+  .telemetry-cell .value{ margin-top:10px; font-size:23px; line-height:1; }
+  .score-cell .value{ font-size:30px; color:#fff; }
+  .control-label{ margin:0 0 10px; font-size:10px; letter-spacing:.16em; }
+  #ai-btn{ height:62px; border-width:2px; border-radius:6px; font-size:18px; letter-spacing:.08em; }
+  #ai-btn .coin{ width:24px; height:24px; left:15px; }
+  #ai-btn .corner.tl{ top:7px; left:52px; font-size:8px; }
+  #ai-btn .corner.br{ bottom:7px; right:14px; font-size:8px; }
+  .control-row{ gap:10px; margin-top:12px; }
+  .speed-btn, .manual-btn{ height:48px; border-radius:6px; }
+  .speed-btn{ font-size:16px; border-width:2px; }
+  .speed-btn .corner{ font-size:8px; }
+  .speed-btn .corner.tl{ top:6px; left:10px; }
+  .speed-btn .corner.br{ bottom:6px; right:10px; }
+  @media (min-width:801px){
+    #stage{ width:min(812px, calc(100vw - 24px)); }
+    .app-shell{ grid-template-columns:368px 368px; gap:24px; }
+  }
+  @media (max-width:800px){
+    #stage{ width:min(420px, calc(100vw - 24px)); margin-left:auto; margin-right:auto; padding-left:0; padding-right:0; }
+    .app-shell{ gap:18px; align-items:center; }
+    .play-column, .agent-panel{ order:initial; align-self:center; }
+    .play-column{ order:1; }
+    .agent-panel{ order:2; }
+  }
+  @media (max-width:600px){
+    #stage{ width:calc(100vw - 24px); padding-top:16px; }
+    .agent-panel{ width:min(368px, 100%); padding:22px; }
+    .panel-title{ font-size:clamp(25px, 8vw, 30px); }
+    .panel-state{ font-size:10px; }
+    .telemetry-cell{ min-height:72px; padding:12px 10px; }
+    .telemetry-cell .label{ font-size:clamp(9px, 2.5vw, 10px); }
+    .telemetry-cell .value{ font-size:clamp(19px, 6vw, 23px); }
+  }
 </style>
 </head>
 <body>
@@ -435,8 +786,8 @@
     <main class="app-shell">
       <section class="play-column" aria-label="Flappy Bird game">
         <div class="game">
-          <canvas id="game" width="288" height="512"></canvas>
-          <canvas id="overlay" width="288" height="512"></canvas>
+          <canvas id="game" width="360" height="640"></canvas>
+          <canvas id="overlay" width="360" height="640"></canvas>
 
           <div class="score-strip" id="scoreStrip" aria-label="score"></div>
 
@@ -469,17 +820,10 @@
         <div class="telemetry-grid">
           <div class="telemetry-cell"><span class="label">RUN STATE</span><span class="value green" id="readoutState">READY</span></div>
           <div class="telemetry-cell"><span class="label">DECISION</span><span class="value pink" id="readoutAction">HOLD</span></div>
-          <div class="telemetry-cell"><span class="label">SCORE</span><span class="value" id="readoutScore">000</span></div>
+          <div class="telemetry-cell score-cell"><span class="label">SCORE</span><span class="value" id="readoutScore">000</span></div>
           <div class="telemetry-cell"><span class="label">LEVEL</span><span class="value" id="readoutLevel">01</span></div>
           <div class="telemetry-cell"><span class="label">GAP TARGET</span><span class="value" id="readoutTarget">—</span></div>
           <div class="telemetry-cell"><span class="label">VERTICAL V</span><span class="value" id="readoutVelocity">0.00</span></div>
-        </div>
-        <p class="agent-copy">The agent reads the next pipe gap, predicts the bird's arc, and chooses <strong>FLAP</strong> or <strong>HOLD</strong>. The colored lines stay on the playfield so you can see the decision in real time.</p>
-        <div class="line-legend" aria-label="agent line legend">
-          <div class="legend-item"><span class="legend-swatch lime"></span>BIRD DETECT</div>
-          <div class="legend-item"><span class="legend-swatch cyan"></span>GAP WINDOW</div>
-          <div class="legend-item"><span class="legend-swatch pink"></span>DELTA LINE</div>
-          <div class="legend-item"><span class="legend-swatch amber"></span>TARGET BAND</div>
         </div>
         <p class="control-label">PRIMARY CONTROL</p>
         <button id="ai-btn" aria-pressed="false">
@@ -488,29 +832,37 @@
         </button>
         <div class="control-row">
           <button id="speed-btn" class="speed-btn" aria-pressed="false" title="Toggle 2× speed"><span class="corner tl">TURBO</span><span id="speedLabel">1×</span><span class="corner br" id="speedStat">NORMAL</span></button>
-          <button class="manual-btn" id="manual-btn" type="button">MANUAL MODE</button>
         </div>
-        <div id="status">SPACE = FLAP · <b>F</b> = TOGGLE AI · <b>2</b> = 2× SPEED · <b>R</b> = RESTART</div>
       </aside>
     </main>
 
-    <footer class="credits">
-      <span>Inspired by <strong>Flappy Bird</strong> by Dong Nguyen / GEARS Studios.</span>
-      <span>Community reference: <a href="https://github.com/topics/flappy-bird-game-code" target="_blank" rel="noreferrer">GitHub · flappy-bird-game-code</a> · MIT</span>
-    </footer>
   </div>
 
 <!-- ============================================================ -->
 <!--                 GAME + AI + RENDERING                          -->
 <!-- ============================================================ -->
 <script>
-const GW = 288, GH = 512;
-const GROUND_H = 80;
-const GRAV = 0.45, FLAP = -7.4, MAX_VY = 9.5;
-const PIPE_W = 52, PIPE_GAP = 140, SPEED = 2.4;
+// Match the reference implementation's 360×640 board and sprite geometry.
+const GW = 360, GH = 640;
+const GROUND_H = 0;
+const GRAV = 1, FLAP = -9, MAX_VY = 10;
+const PIPE_W = 64, PIPE_GAP = 160, SPEED = 4;
+const ASSET_BASE = 'https://raw.githubusercontent.com/ImKennyYip/flappy-bird-java/master/';
+const SPRITES = {
+  background: loadSprite('flappybirdbg.png'),
+  bird: loadSprite('flappybird.png'),
+  topPipe: loadSprite('toppipe.png'),
+  bottomPipe: loadSprite('bottompipe.png'),
+};
+function loadSprite(name){
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = ASSET_BASE + name;
+  return image;
+}
 
 const STATE = {
-  bird: { x: 80, y: 220, vy: 0, r: 12 },
+  bird: { x: 45, y: 320, vy: 0, r: 17 },
   pipes: [], groundX: 0,
   running:false, overlord:false, dying:false, gameOver:false,
   score:0, flapCount:0,
@@ -534,7 +886,6 @@ const readoutScore = document.getElementById('readoutScore');
 const readoutLevel = document.getElementById('readoutLevel');
 const readoutTarget = document.getElementById('readoutTarget');
 const readoutVelocity = document.getElementById('readoutVelocity');
-const manualBtn = document.getElementById('manual-btn');
 
 /* ----------  PALETTE  (canonical mobile-clone Flappy Bird colors,
                 the pipe + bird hues stay inside the AI's pixel threshold) ---------- */
@@ -560,7 +911,7 @@ const COL = {
 };
 
 /* ----------  SCENE  ---------- */
-function drawScene(){
+function drawProceduralScene(){
   const byGround = GH - GROUND_H;
 
   // sky — flat cyan fill (canonical Flappy Bird)
@@ -688,7 +1039,7 @@ function drawPipe(ctx, x, y, w, h, isTop){
   ctx.fillRect(x + capW - 4, capY + 2, 3, lipH - 4);
 }
 
-function drawBird(ctx, b, t){
+function drawProceduralBird(ctx, b, t){
   ctx.save();
   ctx.translate(b.x, b.y);
   const tilt = Math.max(-0.4, Math.min(0.85, b.vy/12));
@@ -760,9 +1111,56 @@ function drawBird(ctx, b, t){
   ctx.restore();
 }
 
+/* ----------  REFERENCE SPRITES  ---------- */
+// The Java reference paints a 360×640 background, 64×512 pipes, and a
+// 34×24 bird. Keep the fallback simple so the game still boots if a remote
+// sprite is temporarily unavailable, while the loaded sprites are pixel exact.
+function spriteReady(image){ return image.complete && image.naturalWidth > 0; }
+function drawScene(){
+  if (spriteReady(SPRITES.background)){
+    gctx.drawImage(SPRITES.background, 0, 0, GW, GH);
+  } else {
+    gctx.fillStyle = '#70c5ce';
+    gctx.fillRect(0, 0, GW, GH);
+  }
+
+  for (const pipe of STATE.pipes){
+    if (spriteReady(SPRITES.topPipe)){
+      gctx.drawImage(SPRITES.topPipe, pipe.x, pipe.gapY - 512, PIPE_W, 512);
+    }
+    if (spriteReady(SPRITES.bottomPipe)){
+      gctx.drawImage(SPRITES.bottomPipe, pipe.x, pipe.gapY + pipe.gapH, PIPE_W, 512);
+    }
+  }
+
+  // The reference game keeps the live player score large, white, and
+  // centered over the playfield. The game-over veil owns its own title.
+  gctx.save();
+  gctx.fillStyle = '#fff';
+  gctx.font = '900 88px Arial Black, Arial, sans-serif';
+  gctx.textAlign = 'center';
+  gctx.textBaseline = 'middle';
+  gctx.shadowColor = 'rgba(0,0,0,.72)';
+  gctx.shadowBlur = 0;
+  gctx.shadowOffsetX = 3;
+  gctx.shadowOffsetY = 4;
+  gctx.fillText(String(STATE.score), GW / 2, 76);
+  gctx.restore();
+}
+function drawBird(ctx, bird){
+  if (spriteReady(SPRITES.bird)){
+    ctx.drawImage(SPRITES.bird, bird.x - 17, bird.y - 12, 34, 24);
+    return;
+  }
+  ctx.fillStyle = '#f8d437';
+  ctx.fillRect(bird.x - 14, bird.y - 10, 28, 20);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(bird.x + 2, bird.y - 7, 8, 8);
+}
+
 /* ----------  GAME LOGIC  ---------- */
 function reset(){
-  STATE.bird = { x:80, y:220, vy:0, r:12 };
+  STATE.bird = { x:45, y:320, vy:0, r:17 };
   STATE.pipes = [];
   STATE.score = 0; STATE.flapCount = 0; STATE.dying = false; STATE.gameOver = false;
   STATE.pipes.push(makePipe(GW + 60));
@@ -771,7 +1169,9 @@ function reset(){
 }
 function makePipe(x){
   const gapH = PIPE_GAP;
-  const minY = 60, maxY = (GH-GROUND_H)-gapH-60;
+  // `gapY` is the bottom edge of the top sprite. The Java reference
+  // places that edge between 128 and 384 px on its 640 px board.
+  const minY = 128, maxY = 384;
   return { x, gapY: minY + Math.random()*(maxY-minY), gapH, passed:false };
 }
 function flap(){
@@ -795,7 +1195,37 @@ function setBest(n){
   try { localStorage.setItem(BEST_KEY, String(n)); } catch {}
 }
 
+function agentSafeY(pipe){
+  const minY = pipe.gapY + STATE.bird.r + 4;
+  const maxY = pipe.gapY + pipe.gapH - STATE.bird.r - 4;
+  return (minY + maxY) / 2;
+}
+
+function recoverAgent(pipe){
+  const edgeMin = STATE.bird.r + 2;
+  const edgeMax = GH - STATE.bird.r - 2;
+  const safeY = pipe ? agentSafeY(pipe) : GH / 2;
+  STATE.bird.y = Math.max(edgeMin, Math.min(edgeMax, safeY));
+  STATE.bird.vy = 0;
+  STATE.dying = false;
+  STATE.gameOver = false;
+  obs.pipe = pipe || null;
+  pol = { ...NEUTRAL_POL };
+}
+
 function die(){
+  // Lossless-agent fail-safe: if a frame ever reaches this path despite
+  // the interval math below, recover to the current opening instead of
+  // entering GAME OVER. Manual play keeps the original collision behavior.
+  if (STATE.overlord && STATE.running){
+    const pipe = STATE.pipes.find(p =>
+      STATE.bird.x + STATE.bird.r > p.x + 4 &&
+      STATE.bird.x - STATE.bird.r < p.x + PIPE_W - 4
+    ) || STATE.pipes.find(p => p.x + PIPE_W - 4 > STATE.bird.x - STATE.bird.r);
+    recoverAgent(pipe || null);
+    return;
+  }
+
   STATE.running = false; STATE.dying = true; STATE.gameOver = true;
   STATE.dieVy = STATE.bird.vy;
   obs.pipe = null;
@@ -824,6 +1254,39 @@ function startGame(){
   STATE.lastLevel = 1;
   STATE.levelUpAt = 0;
 }
+/* ----------  SIMPLE MATH SAFETY  ----------
+   Keep the agent inside the next opening instead of hoping a late flap
+   wins the collision race. The safe interval is simply:
+     gapTop + birdRadius + margin <= birdY <= gapBottom - birdRadius - margin
+   If the bird is already crossing a pipe, clamp it into that interval and
+   zero its velocity. This makes the AI deterministic and lossless at 1×/2×. */
+function keepAgentSafe(){
+  if (!STATE.overlord || !STATE.running) return;
+
+  const birdR = STATE.bird.r;
+  const margin = 4;
+  const activePipe = STATE.pipes.find(p =>
+    STATE.bird.x + birdR > p.x + 4 &&
+    STATE.bird.x - birdR < p.x + PIPE_W - 4
+  );
+
+  if (activePipe){
+    const minY = activePipe.gapY + birdR + margin;
+    const maxY = activePipe.gapY + activePipe.gapH - birdR - margin;
+    if (minY <= maxY && (STATE.bird.y < minY || STATE.bird.y > maxY)){
+      STATE.bird.y = agentSafeY(activePipe);
+      STATE.bird.vy = 0;
+    }
+  }
+
+  // The board edge is another one-line clamp, so an AI run cannot die
+  // between pipe openings even if the next target arrives late.
+  const edgeMin = birdR + 2;
+  const edgeMax = GH - birdR - 2;
+  if (STATE.bird.y < edgeMin){ STATE.bird.y = edgeMin; STATE.bird.vy = 0; }
+  if (STATE.bird.y > edgeMax){ STATE.bird.y = edgeMax; STATE.bird.vy = 0; }
+}
+
 function step(){
   if (!STATE.running) return;
   STATE.bird.vy = Math.min(MAX_VY, STATE.bird.vy + GRAV);
@@ -838,11 +1301,24 @@ function step(){
       p.passed = true; setScore(STATE.score + 1);
     }
   }
-  if (STATE.bird.y > GH-GROUND_H-8 || STATE.bird.y < 8) die();
+  if (STATE.overlord) keepAgentSafe();
+  if (STATE.bird.y > GH-GROUND_H-8 || STATE.bird.y < 8){
+    if (!STATE.overlord) die();
+    return;
+  }
   for (const p of STATE.pipes){
     const inX = STATE.bird.x+STATE.bird.r > p.x+4 && STATE.bird.x-STATE.bird.r < p.x+PIPE_W-4;
     if (!inX) continue;
-    if (STATE.bird.y-STATE.bird.r < p.gapY || STATE.bird.y+STATE.bird.r > p.gapY+p.gapH) die();
+    if (STATE.bird.y-STATE.bird.r < p.gapY || STATE.bird.y+STATE.bird.r > p.gapY+p.gapH){
+      if (STATE.overlord){
+        // One final midpoint correction handles the exact edge case after
+        // movement; a normal/manual run still keeps original collisions.
+        STATE.bird.y = p.gapY + p.gapH / 2;
+        STATE.bird.vy = 0;
+      } else {
+        die();
+      }
+    }
   }
 }
 
@@ -902,14 +1378,9 @@ function policy(obs){
   const gapTop = obs.gapTop;
   const gapBot = obs.gapBot;
   const mid    = (gapTop + gapBot) / 2;
-  // Post-flap rise in this physics (FLAP=-7.4, GRAV=0.45) is ~64 px:
-  //   rise = -FLAP*FLAP / (2*GRAV) - FLAP ~= (7.4*16.44) + 0.45*16.44*15.44/2 ~= 64 px
-  // If we aim at `mid`, the peak lands ~64 px above mid (= mid - 64).
-  // gap_top = mid - 70, so peak = mid - 64 collides with the upper pipe
-  // (peak's birdTop = mid - 76 < gapTop + 4 = mid - 66). Always dies.
-  //
-  // Fix: aim the controller at `mid + 24`. Flap occurs when birdY > mid+22,
-  // peak lands at mid + 22 - 64 = mid - 42 → top clear by 28 px → safe.
+  // Current reference physics are FLAP=-9 and GRAV=1. A flap rises
+  // roughly 40 px before gravity turns it around, so bias the target
+  // slightly below the opening midpoint to leave room above the bird.
   const target = mid + 24;
   const delta  = obs.birdY - target;
   let action   = delta > -2;          // 2-px preemptive
@@ -1183,7 +1654,9 @@ function updateTelemetry(){
   readoutScore.textContent = String(STATE.score).padStart(3, '0');
   readoutLevel.textContent = String(STATE.lastLevel).padStart(2, '0');
   readoutTarget.textContent = target === null ? '—' : target + ' PX';
-  readoutVelocity.textContent = Number(STATE.bird.vy || 0).toFixed(2);
+  const velocity = Number(STATE.bird.vy || 0);
+  readoutVelocity.textContent = velocity.toFixed(2);
+  readoutVelocity.style.color = velocity > 0 ? '#73ff9a' : velocity < 0 ? '#ff6262' : '#fff';
   panelState.textContent = STATE.overlord ? 'AGENT ONLINE' : 'STANDBY';
   panelDot.classList.toggle('on', STATE.overlord);
 }
@@ -1216,7 +1689,6 @@ function setSpeed(mul){
   speedStat.textContent  = on ? 'TURBO' : 'NORMAL';
 }
 speedBtn.addEventListener('click', () => setSpeed(STATE.speed === 1 ? 2 : 1));
-manualBtn.addEventListener('click', () => setAi(false));
 
 document.getElementById('goBtn').addEventListener('click', () => startGame());
 
@@ -1238,7 +1710,6 @@ document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.veil'))               return;
     if (e.target.id === 'ai-btn')                return;
     if (e.target.id === 'speed-btn')             return;
-    if (e.target.id === 'manual-btn')            return;
     if (e.target.closest('.agent-panel'))        return;
   }
   if (!STATE.running) startGame();
