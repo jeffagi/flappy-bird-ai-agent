@@ -1,6 +1,8 @@
 # 🐦 FLAPPY BIRD · AI AGENT
 
-A pixel-perfect, single-file recreation of the canonical Flappy Bird mobile game with a built-in **unbeatable AI agent** that you can toggle on with one click. The agent's "thinking" is visualized live as glowing detection lines drawn directly on top of the game playfield.
+A pixel-faithful, single-file recreation of the classic Flappy Bird arcade loop with a built-in **AI agent** that you can toggle on with one click. The agent's "thinking" is visualized live as glowing detection lines drawn directly on top of the game playfield, alongside a compact telemetry console.
+
+The presentation takes cues from the open-source browser-game conventions collected under GitHub's [`flappy-bird-game-code`](https://github.com/topics/flappy-bird-game-code) topic: HTML5 Canvas rendering, readable score/game-over states, responsive controls, and a simple no-build launch. This project is an independent implementation, not a copy of any one repository.
 
 ![preview](https://img.shields.io/badge/run-open%20index.html-blue?style=flat-square)
 
@@ -8,12 +10,12 @@ A pixel-perfect, single-file recreation of the canonical Flappy Bird mobile game
 
 ## How to play
 
-1. Open `index.html` in any modern browser (Chrome / Safari / Firefox / Edge).  
+1. Open `index.html` in any modern browser (Chrome / Safari / Firefox / Edge).
    No build step, no dependencies — the entire game + AI lives in one HTML file.
 2. **SPACE** to flap, **F** to toggle the AI on/off, **2** to switch to **2× turbo speed**, **R** to restart.
-3. Click the giant **ACTIVATE AI AGENT** button to engage the agent. Click the smaller **1× / 2×** amber button to make the bird fly through twice as fast.
+3. Click **ENGAGE AGENT** in the console to engage the agent. Click the smaller **1× / 2×** amber button to make the bird fly through twice as fast.
 
-The game canvas is centred between two light-blue panels on a soft sky-blue gradient — click anywhere on the page outside the buttons to also flap.
+The game uses the 360×640 board, 64×512 pipes, 34×24 bird, sprite placement, and Java-style gravity/flap timing from [ImKennyYip/flappy-bird-java](https://github.com/ImKennyYip/flappy-bird-java). Click the playfield to flap in manual mode; the console keeps the AI decision lines and controls visible without covering the game.
 
 ---
 
@@ -23,36 +25,39 @@ Every sub-step (twice per render frame at 2× speed), the agent reads **four inp
 
 - `bird_y` — the bird's current vertical position
 - `bird_vy` — the bird's current vertical velocity (signed: positive = falling, negative = rising)
-- `gap_mid` — the midpoint Y of the next un-passed pipe's gap
-- `gap_size` — the height of the next pipe's gap (= 140 px)
+- `gap_mid` — the midpoint Y of the next pipe gap still ahead of the bird
+- `gap_size` — the height of the next pipe's gap (= 160 px)
 
-It then computes a **lookahead-corrected target** for the bird:
+It then computes a **lookahead-corrected target** for the bird. The lossless agent also applies `keepAgentSafe()` before collision checks: it clamps the bird to the interval between the gap edges minus the bird radius and a 4 px margin. `recoverAgent()` is a final fail-safe if a frame still reaches the collision path, so AI mode continues instead of entering GAME OVER.
 
 ```
-target  = gap_mid + (−bird_vy × 5)        // 5 px per unit vy → tracks motion
+target  = gap_mid + 24                   // bias below center for the flap arc
 delta   = bird_y − target                // negative → bird above target, positive → below
-action  = (delta > −4)                   // flap 4 px BEFORE crossing target, never after
+action  = (delta > −2)                   // flap just before crossing target, never after
 ```
+
+The visible amber target band also responds to vertical velocity (`gap_mid + (−bird_vy × 5)`) so the HUD communicates motion-aware intent while the deterministic policy uses its conservative `mid + 24` safety bias.
 
 …and fires a flap whenever the action line is true. A second safety net, `safetyFlapIfNeeded()`, force-flaps when the bird is currently inside a pipe column and within 8 px of the lower pipe — that's the belt-and-suspenders guarantee that **the agent cannot lose** under these deterministic physics:
 
 | Constant        | Value          |
 | --------------- | -------------- |
-| Canvas          | 288 × 512 px   |
-| Pipe gap        | 140 px         |
-| Bird footprint  | 24 px (r = 12) |
-| Scroll speed    | 2.4 px/frame   |
-| Gravity         | 0.45 px/frame² |
-| Flap impulse    | −7.4 px/frame  |
-| Terminal vy     | 9.5 px/frame   |
+| Canvas          | 360 × 640 px   |
+| Pipe gap        | 160 px         |
+| Bird footprint  | 34 × 24 px     |
+| Pipe width      | 64 px          |
+| Scroll speed    | 4 px/frame     |
+| Gravity         | 1 px/frame²    |
+| Flap impulse    | −9 px/frame    |
+| Terminal vy     | 10 px/frame    |
 
-Add `+0.45` per sub-step to vy, multiply scroll by `STATE.speed`, no other tweaks needed.
+Add `+1` per sub-step to vy, multiply scroll by `STATE.speed`, and keep the agent inside the mathematically safe opening interval before collision checks.
 
 ---
 
 ## What you see on the canvas
 
-The agent's "thinking" is drawn directly on top of the game as a glowing HUD:
+The agent's "thinking" is drawn directly on top of the reference sprites as a glowing HUD:
 
 - 🟢 **Lime bounding box** around the detected bird + small `FLAPS · N` / `conf · 0.95` tags above it
 - 🩵 **Cyan bounding box** around the next pipe gap + crosshair line through `gap_mid`
@@ -60,9 +65,16 @@ The agent's "thinking" is drawn directly on top of the game as a glowing HUD:
 - 🟡 **Amber threshold band** trailing the target zone to the right of the pipe
 - 🟩 **Tiny lime FLAP badge** next to the bird that pulses every time the agent fires
 
-A `1× / 2× TURBO` button under the main **ACTIVATE AI AGENT** button flips the entire simulation between normal and 2× speed while still keeping the agent unbeatable thanks to the per-sub-step decision loop.
+A `1× / 2× TURBO` button under the **ENGAGE AGENT** console control flips the entire simulation between normal and 2× speed while still keeping the agent coupled to the policy thanks to the per-sub-step decision loop.
 
 ---
+
+## Credits and references
+
+- **Flappy Bird concept and visual conventions:** Dong Nguyen / GEARS Studios (the original game).
+- **Game implementation reference and sprite assets:** [ImKennyYip/flappy-bird-java](https://github.com/ImKennyYip/flappy-bird-java), used for the 360×640 board geometry, sprite presentation, and Java-style game loop conventions.
+- **Community reference:** [GitHub `flappy-bird-game-code` topic](https://github.com/topics/flappy-bird-game-code), used as a reference point for common open-source game conventions.
+- **This implementation:** Jeffrey Wang, MIT licensed in [`LICENSE`](./LICENSE).
 
 ## Files
 
@@ -70,13 +82,13 @@ A `1× / 2× TURBO` button under the main **ACTIVATE AI AGENT** button flips the
 index.html        — the entire game + AI + visualization in one self-contained HTML file
 ```
 
-That's it. Drop `index.html` anywhere (S3, GitHub Pages, a USB stick) and it'll run offline.
+That's it. Serve `index.html` from any static host. The reference sprites are loaded from the credited GitHub repository at runtime, so the page needs network access for the exact artwork.
 
 ---
 
 ## Level system
 
-A bottom-right pill tracks the agent's progress through pipes: `LEVEL N · score/200`. Every 25 pipes unlocks the next level (`Math.floor(score / 25) + 1`), and on each level-up the canvas briefly flashes a giant amber `LEVEL N` with the subline `UNBEATABLE AGENT` for 1.3 s — a visible confirmation that the AI is still climbing. With the deterministic physics in this file (140 px gap, 24 px bird footprint, gravity 0.45, flap −7.4, terminal vy 9.5, 2.4 px/frame scroll), the agent is provably unable to lose, so reaching the **LEVEL 9 · 200/200** milestone is just a matter of letting the AI run long enough. Open the page, hit **ACTIVATE AI AGENT**, then come back in a couple of minutes and watch the flash fire eight times — once per level boundary.
+A bottom-right pill tracks the agent's progress through pipes: `LEVEL N · score/200`. Every 25 pipes unlocks the next level (`Math.floor(score / 25) + 1`), and on each level-up the canvas briefly flashes a giant amber `LEVEL N` with the subline `UNBEATABLE AGENT` for 1.3 s — a visible confirmation that the AI is still climbing. With the deterministic physics in this file (160 px gap, 34 × 24 bird sprite, gravity 1, flap −9, terminal vy 10, 4 px/frame scroll), the safety controller keeps the AI inside the safe interval rather than allowing a collision race. There is no level cap; engage the agent and watch it continue beyond level 14.
 
 ---
 
