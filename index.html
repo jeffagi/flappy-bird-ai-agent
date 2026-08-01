@@ -1280,18 +1280,16 @@ function setSpeed(mul){
   });
 }
 speedBtns.forEach((button) => {
-  const selectSpeed = (event) => {
-    event.preventDefault();
+  button.addEventListener('click', (event) => {
     event.stopPropagation();
     setSpeed(Number(button.dataset.speed));
-  };
-  button.addEventListener('pointerdown', selectSpeed);
-  button.addEventListener('click', selectSpeed);
+  });
 });
 
 document.getElementById('goBtn').addEventListener('click', () => startGame());
 
 document.addEventListener('keydown', (e) => {
+  if (e.target && e.target.closest && e.target.closest('button')) return;
   if (e.code === 'Space' || e.code === 'Enter'){ e.preventDefault();
     if (!STATE.running) startGame();
     else flap();
